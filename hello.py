@@ -8,15 +8,12 @@ app.config.from_object(os.environ['APP_SETTINGS'])
 
 db = MongoEngine(app)
 
-class Requester(db.Document):
-    email = db.StringField(required=True)
-    
-test_requester = Requester(email='dan@weld.com')
-test_requester.save()
-
+from schema.requester import Requester
 
 @app.route('/')
 def hello():
-    return 'Hello World!'
+    test_requester = Requester(email='dan@weld.com')
+    test_requester.save()
+    return 'Hello World! Dan Weld has been added to the DB!'
 
 
