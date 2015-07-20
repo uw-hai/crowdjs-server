@@ -1,5 +1,5 @@
 from flask.ext.security import RoleMixin
-from hello import db
+from app import db
 from answer import Answer
 
 class Question(db.Document):

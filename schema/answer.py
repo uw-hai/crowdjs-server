@@ -1,4 +1,4 @@
-from hello import db
+from app import db
 from worker import Worker
 from requester import Requester
 from question import Question
