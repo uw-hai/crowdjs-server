@@ -1,5 +1,5 @@
 from flask.ext.security import UserMixin
-from hello import db
+from app import db
 from role import Role
 
 class Requester(db.Document, UserMixin):

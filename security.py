@@ -1,7 +1,7 @@
 from flask import current_app
 from flask.ext.security import Security, MongoEngineUserDatastore
 
-from hello import db
+from app import db
 from schema.requester import Requester
 from schema.role import Role
 
