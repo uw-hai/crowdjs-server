@@ -12,6 +12,7 @@ api = Api(app)
 
 import schema.requester
 import schema.question
+import schema.task
 
 @app.route('/')
 def hello():
@@ -19,14 +20,30 @@ def hello():
     test_requester.save()
     return 'Hello World! Dan Weld has been added to the DB!'
 
-@app.route('/add_test_question')
-def add_test_question():
+@app.route('/add_test_questions_and_task')
+def add_test_questions_and_task():
     test_requester = schema.requester.Requester.objects.get_or_404(
         email='dan@weld.com')
-    test_question = schema.question.Question(name='testing',
+    test_question1 = schema.question.Question(name='testing1',
+                                             description='test question 1',
                                              requester = test_requester)
-    test_question.save()
-    return 'Test question added to DB'
+    test_question1.save()
+
+    test_question2 = schema.question.Question(name='testing2',
+                                             description='test question 2',
+                                             requester = test_requester)
+
+    test_question2.save()
+
+    test_task = schema.task.Task(name = 'testingtask',
+                                 description = 'test task with 2 questions',
+                                 requester = test_requester,
+                                 questions = [test_question1, test_question2])
+    test_task.save()
+                                
+    return 'Test questions and task added to DB'
+
+                                 
 
 @app.route('/add_test_worker')
 def add_test_worker():
