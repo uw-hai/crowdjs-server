@@ -16,6 +16,8 @@ class Config(object):
         'username' : dbuser,
         'password' : dbpass}
 
+    SECRET_KEY = 'super-secret'
+
 class DevelopmentConfig(Config):
     DEVELOPMENT = True
     DEBUG = True
