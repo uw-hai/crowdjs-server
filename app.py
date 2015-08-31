@@ -23,6 +23,7 @@ user_datastore = MongoEngineUserDatastore(db, schema.requester.Requester,
                                           schema.role.Role)
 security = Security(app, user_datastore)
 print "Done loading security datastore. Ready to serve pages."
+sys.stdout.flush()
 
 @app.route('/')
 def hello():
