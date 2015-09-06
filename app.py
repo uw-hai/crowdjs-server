@@ -1,8 +1,10 @@
-import os, sys
+import os, sys, traceback
 from flask import Flask
 from flask.ext.mongoengine import MongoEngine
 from flask.ext.restful import Api
 from flask.ext.security import Security, MongoEngineUserDatastore, login_required, login_user
+from flask.ext.security.registerable import register_user
+from flask.ext.mail import Mail
 import uuid
 
 app = Flask(__name__)
@@ -17,6 +19,10 @@ import schema.question
 import schema.task
 import schema.role
 
+print "Loading mail extension"
+sys.stdout.flush()
+mail = Mail(app)
+
 print "Loading security datastore"
 sys.stdout.flush()
 user_datastore = MongoEngineUserDatastore(db, schema.requester.Requester, 
@@ -28,13 +34,12 @@ sys.stdout.flush()
 @app.route('/')
 def hello():
     print "Firing the missiles..."
-    sys.stdout.flush()
-
     try:
-        test_user = schema.requester.Requester.objects.get(email='dan@weld.com')
+        test_user = schema.requester.Requester.objects.get(
+            email='dan@crowdlab.com')
     except:
-        test_user = user_datastore.create_user(email='dan@weld.com', 
-                                   password='chrisisawesome')
+        test_user = register_user(email='dan@crowdlab.com',
+                                  password='chrisisawesome')
 
     return 'Hello World! Dan Weld has been added to the DB!'
 

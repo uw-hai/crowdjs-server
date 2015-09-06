@@ -1,6 +1,8 @@
+import traceback
 import unittest
 import schema
 from app import app, db, user_datastore
+from flask.ext.security.registerable import register_user
 import uuid
 import json
 
@@ -16,11 +18,14 @@ class AppTestCase(unittest.TestCase):
     def setUp(self):
         clear_db()
         self.app = app.test_client()
-        self.test_requester = user_datastore.create_user(email='dan@weld.com', 
-                                               password='chrisisawesome')
+        
+        with app.app_context():
+            self.test_requester = register_user(email='dan@crowdlab.com',
+                                                password='chrisisawesome')
 
     def test_add_test_questions_and_task(self):
-        requesters = schema.requester.Requester.objects(email='dan@weld.com')
+        requesters = schema.requester.Requester.objects(
+            email='dan@crowdlab.com')
         self.assertEqual(1, len(requesters))
 
         self.assertIsNone(schema.task.Task.objects.first())

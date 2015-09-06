@@ -17,10 +17,14 @@ class Config(object):
         'password' : dbpass}
 
     SECRET_KEY = 'super-secret'
+    SECURITY_REGISTERABLE = True
+    SECURITY_PASSWORD_HASH = 'sha512_crypt'
+    SECURITY_PASSWORD_SALT = 'abcde'
 
 class DevelopmentConfig(Config):
     DEVELOPMENT = True
     DEBUG = True
+    TESTING = True
 
 class Production(Config):
     DEBUG = False
