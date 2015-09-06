@@ -72,16 +72,13 @@ def add_test_questions_and_task():
     return 'Test questions and task added to DB'
 
                                  
-
-@app.route('/add_test_worker')
-def add_test_worker():
-    test_worker = schema.worker.Worker(turk_id='dan_weld_the_worker')
-    test_worker.save()
-    return 'Test worker added to DB'
     
 
-from api.question import QuestionApi
+from api.question_api import QuestionApi
 api.add_resource(QuestionApi, '/questions/<question_id>')
 
 from api.answer_api import AnswerApi
 api.add_resource(AnswerApi, '/api/add_answer')
+
+from api.task_api import TaskApi
+api.add_resource(TaskApi, '/api/task')
