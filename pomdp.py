@@ -5,8 +5,6 @@ import subprocess
 import tempfile
 import shutil
 
-ZMDP_ALIAS = 'zmdp'
-
 class POMDP(object):
     """Base POMDP class."""
     def __init__(self):
@@ -73,7 +71,8 @@ class ZPOMDP(POMDP):
             self.write_cassandra(
                 f, states, actions, observations, f_start,
                 f_transition, f_observation, f_reward, discount)
-        args = [ZMDP_ALIAS, 'solve', model_filename, '-o', policy_filename]
+        args = [os.environ['ZMDP_ALIAS'], 'solve', model_filename,
+                '-o', policy_filename]
         if timeout:
             args += ['-t', str(timeout)]
         subprocess.call(args)
