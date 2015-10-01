@@ -80,7 +80,7 @@ def add_test_questions_and_task():
     
 
 from api.question_api import QuestionApi
-api.add_resource(QuestionApi, '/questions/<question_id>')
+api.add_resource(QuestionApi, '/questions/<question_id>', '/api/add_question')
 
 from api.answer_api import AnswerApi
 api.add_resource(AnswerApi, '/api/add_answer')

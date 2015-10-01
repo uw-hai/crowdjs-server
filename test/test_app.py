@@ -65,6 +65,35 @@ class AppTestCase(unittest.TestCase):
         get_task = json.loads(rv.data)
         self.assertEqual(200, rv.status_code)
         self.assertEqual(task_id, get_task['_id']['$oid'])
+
+        # TEST add question to existing task
+        test_task2 = dict(task_name = uuid.uuid1().hex, task_description = 'test task 2', questions = [], requester_id = str(self.test_requester.id))
+        rv2 = self.app.put('/api/task', content_type='application/json',data=json.dumps(test_task2))
+        task_id2 = json.loads(rv2.data)['task_id']
+        self.assertEqual(200, rv.status_code)
+
+        test_question3_name = uuid.uuid1().hex
+        test_question3_description = "question 3 description here"
+        test_question3 = dict(question_name=test_question3_name,
+                              question_description=test_question3_description,
+                              question_data='84',
+                              requester_id = str(self.test_requester.id))
+
+        rvq = self.app.put('/api/add_question?task_id=%s' % task_id2, content_type='application/json', data=json.dumps(test_question3))
+        test_question3_id = json.loads(rvq.data)['question_id']
+
+        # Check that our specific question was added to the task
+        rv = self.app.get('/api/task?task_id=%s' % task_id2)
+        get_task = json.loads(rv.data)
+        self.assertEqual(1, len(get_task['questions']))
+        saved_q3_id = get_task['questions'][0]['$oid']
+        self.assertEqual(test_question3_id, saved_q3_id)
+
+        # Check integrity of question
+        rv = self.app.get('/questions/%s' % test_question3_id)
+        get_question = json.loads(rv.data)
+        self.assertEqual(test_question3_name, get_question['name'])
+        self.assertEqual(test_question3_description, get_question['description'])
         
     def tearDown(self):
         clear_db()
