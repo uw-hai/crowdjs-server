@@ -67,7 +67,7 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(task_id, get_task['_id']['$oid'])
 
         # TEST add question to existing task
-        test_task2 = dict(task_name = uuid.uuid1().hex, task_description = 'test task 2', questions = [], requester_id = str(self.test_requester.id))
+        test_task2 = dict(task_name = uuid.uuid1().hex, task_description = 'test task 2', requester_id = str(self.test_requester.id))
         rv2 = self.app.put('/api/task', content_type='application/json',data=json.dumps(test_task2))
         task_id2 = json.loads(rv2.data)['task_id']
         self.assertEqual(200, rv.status_code)
@@ -94,6 +94,21 @@ class AppTestCase(unittest.TestCase):
         get_question = json.loads(rv.data)
         self.assertEqual(test_question3_name, get_question['name'])
         self.assertEqual(test_question3_description, get_question['description'])
+
+
+        # Add worker
+        test_turk_id = "xxxTEST_TURK_ID"
+        test_worker = dict(turk_id = test_turk_id)
+        rv = self.app.put('/api/worker', content_type='application/json', data=json.dumps(test_worker))
+        get_worker = json.loads(rv.data)
+        test_worker_id = get_worker['worker_id']
+
+        # Check that worker was successfully added
+        rv = self.app.get('/api/worker?worker_id=%s' % test_worker_id)
+        get_worker = json.loads(rv.data)
+        saved_worker_id = get_worker['turk_id']
+        self.assertEqual(test_turk_id, saved_worker_id)
+
         
     def tearDown(self):
         clear_db()

@@ -87,3 +87,6 @@ api.add_resource(AnswerApi, '/api/add_answer')
 
 from api.task_api import TaskApi
 api.add_resource(TaskApi, '/api/task')
+
+from api.worker_api import WorkerApi
+api.add_resource(WorkerApi, '/api/worker')
