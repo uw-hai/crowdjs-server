@@ -31,8 +31,9 @@ class TaskApi(Resource):
         requester_id = args['requester_id']
         task_name = args['task_name']
         task_description = args['task_description']
-        questions = []
         questions = args['questions']
+        if questions is None:
+            questions = []
         requester = Requester.objects.get_or_404(id = requester_id)
         questionDocuments = []
         for question in questions:
