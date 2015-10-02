@@ -1,6 +1,7 @@
 from flask.ext.restful import reqparse, abort, Api, Resource
 import schema.question
 import schema.task
+import schema.requester
 
 
 question_parser = reqparse.RequestParser()
@@ -24,6 +25,7 @@ class QuestionApi(Resource):
 
         question_name = args['question_name']
         question_description = args['question_description']
+        #TODO what is question_data for?
         question_data = args['question_data']
 
         requester_id = args['requester_id']
@@ -32,12 +34,8 @@ class QuestionApi(Resource):
         task_id = args['task_id']
         task = schema.task.Task.objects.get_or_404(id=task_id)
 
-        questionDocument = schema.question.Question(name = question_name, description = question_description, requester = requester)
+        questionDocument = schema.question.Question(name = question_name, description = question_description, task = task, requester = requester)
 
         questionDocument.save()
-
-        # TODO concurrency issues with question list?
-        task.questions.append(questionDocument)
-        task.save()
 
         return {'question_id' : str(questionDocument.id)}

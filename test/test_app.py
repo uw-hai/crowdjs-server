@@ -86,7 +86,8 @@ class AppTestCase(unittest.TestCase):
         rv = self.app.get('/api/task?task_id=%s' % task_id2)
         get_task = json.loads(rv.data)
         self.assertEqual(1, len(get_task['questions']))
-        saved_q3_id = get_task['questions'][0]['$oid']
+        print get_task['questions'], type(get_task['questions'])
+        saved_q3_id = get_task['questions'][0]['_id']['$oid']
         self.assertEqual(test_question3_id, saved_q3_id)
 
         # Check integrity of question
@@ -109,6 +110,16 @@ class AppTestCase(unittest.TestCase):
         saved_worker_id = get_worker['turk_id']
         self.assertEqual(test_turk_id, saved_worker_id)
 
+        # Test add_answer
+        test_answer = dict(question_id=test_question3_id, worker_id=test_worker_id, value="test answer value")
+        rv = self.app.put('/api/add_answer', content_type='application/json', data=json.dumps(test_answer))
+        #expected_add_answer_rv = "Answer inserted"
+        expected_add_answer_rv = "test answer value"
+        self.assertEqual(200, rv.status_code)
+        get_answer = json.loads(rv.data)
+        self.assertEqual(get_answer['value'], expected_add_answer_rv)
+
+        # TODO check that answer value is correct and was added to the question
         
     def tearDown(self):
         clear_db()

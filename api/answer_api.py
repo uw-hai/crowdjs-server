@@ -1,7 +1,6 @@
 from flask.ext.restful import reqparse, abort, Api, Resource
 from schema.answer import Answer
 from schema.question import Question
-from schema.requester import Requester
 from schema.worker import Worker
 
 answer_parser = reqparse.RequestParser()
@@ -18,18 +17,14 @@ class AnswerApi(Resource):
         value = args['value']
         
         question = Question.objects.get_or_404(id=question_id)
-        requester = question.requester
         worker = Worker.objects.get_or_404(id=worker_id)
 
         answer = Answer(value = value,
                         question = question,
-                        worker = worker,
-                        requester = requester)
+                        worker = worker)
 
         answer.save()                        
 
-        question.worker_answers.append(answer)
-        question.save()
-
-        return "Answer inserted"
-
+        #return "Answer inserted"
+        #TODO what to return
+        return {'value' : answer.value}

@@ -23,8 +23,13 @@ class TaskApi(Resource):
         print "Getting Task"
         print task_id
         task = Task.objects.get_or_404(id=task_id)
-        #return task.to_json()
-        return json.loads(task.to_json())
+        questions = Question.objects(task=task_id)
+        #TODO currently dump in the task's questions - maybe think this through more
+        print type(json.loads(task.to_json()))
+        print type(questions.to_json())
+        d = json.loads(task.to_json())
+        d['questions'] = json.loads(questions.to_json())
+        return d
 
     def put(self):
         args = task_parser.parse_args()
@@ -34,14 +39,23 @@ class TaskApi(Resource):
         questions = args['questions']
         if questions is None:
             questions = []
+
         requester = Requester.objects.get_or_404(id = requester_id)
+
+        # Save the task first so we can add questions with task id
+        taskDocument = Task(name = task_name,
+                            description = task_description,
+                            requester = requester)
+        taskDocument.save()
+
+        # Add questions to db
         questionDocuments = []
         for question in questions:
             question_name = question['question_name']
             question_description = question['question_description']
-            
             questionDocument = Question(name = question_name,
                                         description = question_description,
+                                        task = taskDocument,
                                         requester = requester)
             questionDocuments.append(questionDocument)
 
@@ -49,11 +63,5 @@ class TaskApi(Resource):
         #and making sure there are no errors
         for questionDocument in questionDocuments:
             questionDocument.save()
-
-        taskDocument = Task(name = task_name,
-                            description = task_description,
-                            questions = questionDocuments,
-                            requester = requester)
-        taskDocument.save()
         
         return {'task_id' : str(taskDocument.id)}
