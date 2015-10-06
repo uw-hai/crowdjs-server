@@ -7,31 +7,23 @@ from schema.requester import Requester
 from flask.json import jsonify
 import json
 
-task_get_parser = reqparse.RequestParser()
-task_get_parser.add_argument('task_id', type=str, required=True)
-
 task_parser = reqparse.RequestParser()
 task_parser.add_argument('requester_id', type=str, required=True)
 task_parser.add_argument('task_name', type=str, required=True)
 task_parser.add_argument('task_description', type=str, required=True)
 task_parser.add_argument('questions', type=list, location='json', required=False)
 
-class TaskApi(Resource):
+class TaskListApi(Resource):
     def get(self):
-        args = task_get_parser.parse_args()
-        task_id = args['task_id']
-        print "Getting Task"
-        print task_id
-        task = Task.objects.get_or_404(id=task_id)
-        questions = Question.objects(task=task_id)
-        #TODO currently dump in the task's questions - maybe think this through more
-        print type(json.loads(task.to_json()))
-        print type(questions.to_json())
-        d = json.loads(task.to_json())
-        d['questions'] = json.loads(questions.to_json())
-        return d
-
+        """
+        Get list of all tasks.
+        """
+        tasks = Task.objects
+        return json.loads(tasks.to_json())
     def put(self):
+        """
+        Create a new task.
+        """
         args = task_parser.parse_args()
         requester_id = args['requester_id']
         task_name = args['task_name']
@@ -65,3 +57,16 @@ class TaskApi(Resource):
             questionDocument.save()
         
         return {'task_id' : str(taskDocument.id)}
+
+class TaskApi(Resource):
+    def get(self, task_id):
+        """
+        Get data of specific task.
+        """
+        print "Getting Task"
+        task = Task.objects.get_or_404(id=task_id)
+        questions = Question.objects(task=task_id)
+        #TODO currently dump in the task's questions - maybe think this through more
+        d = json.loads(task.to_json())
+        d['questions'] = json.loads(questions.to_json())
+        return d

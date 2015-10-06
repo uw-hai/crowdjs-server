@@ -79,14 +79,24 @@ def add_test_questions_and_task():
                                  
     
 
-from api.question_api import QuestionApi
-api.add_resource(QuestionApi, '/questions/<question_id>', '/api/add_question')
+from api.question_api import *
+api.add_resource(QuestionApi, '/questions/<question_id>')
+api.add_resource(QuestionListApi, '/questions')
 
-from api.answer_api import AnswerApi
-api.add_resource(AnswerApi, '/api/add_answer')
+from api.answer_api import *
+api.add_resource(AnswerApi, '/answers/<answer_id>')
+api.add_resource(AnswerListApi, '/answers')
 
-from api.task_api import TaskApi
-api.add_resource(TaskApi, '/api/task')
+from api.task_api import *
+api.add_resource(TaskApi, '/tasks/<task_id>')
+api.add_resource(TaskListApi, '/tasks')
 
-from api.worker_api import WorkerApi
-api.add_resource(WorkerApi, '/api/worker')
+from api.worker_api import *
+api.add_resource(WorkerListApi, '/workers')
+api.add_resource(WorkerApi, '/workers/<worker_id>')
+api.add_resource(WorkerAnswersApi, '/workers/<worker_id>/answers')
+
+from api.requester_api import *
+api.add_resource(RequesterListApi, '/requesters')
+api.add_resource(RequesterApi, '/requesters/<requester_id>')
+api.add_resource(RequesterTasksApi, '/requesters/<requester_id>/tasks')
