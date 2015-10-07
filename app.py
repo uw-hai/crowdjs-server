@@ -78,11 +78,14 @@ def add_test_questions_and_task():
 
                                  
     
+# API routes go here.
 
 from api.question_api import *
 api.add_resource(QuestionApi, '/questions/<question_id>')
 api.add_resource(QuestionListApi, '/questions')
 api.add_resource(QuestionAnswersApi, '/questions/<question_id>/answers')
+#TODO not implemented yet
+#api.add_resource(QuestionAggregatedAnswerApi, '/questions/<question_id>/aggregated_answer')
 
 from api.answer_api import *
 api.add_resource(AnswerApi, '/answers/<answer_id>')
@@ -97,6 +100,9 @@ from api.worker_api import *
 api.add_resource(WorkerListApi, '/workers')
 api.add_resource(WorkerApi, '/workers/<worker_id>')
 api.add_resource(WorkerAnswersApi, '/workers/<worker_id>/answers')
+#TODO not implemented yet
+#api.add_resource(WorkerSkillApi, '/workers/<worker_id>/skill')
+#api.add_resource(WorkerPerTaskSkillApi, '/workers/<worker_id>/skill/<task_id>')
 
 from api.requester_api import *
 api.add_resource(RequesterListApi, '/requesters')
