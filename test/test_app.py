@@ -175,6 +175,12 @@ class AppTestCase(unittest.TestCase):
 
         rv = self.app.get('/workers/%s/answers' % test_worker_id)
         print rv.data
+
+        rv = self.app.get('/tasks/%s/questions' % task_id)
+        print rv.data
+
+        rv = self.app.get('/questions/%s/answers' % test_question3_id)
+        print rv.data
         
     def tearDown(self):
         clear_db()

@@ -24,7 +24,9 @@ class RequesterListApi(Resource):
         email = args['email']
         password = args['password']
         register_user(email=email, password=password)
-        return 'Added requester'
+        # TODO best way to return requester's ID?
+        requesterDocument = Requester.objects.get_or_404(email=email)
+        return {'requester_id' : str(requesterDocument.id)}
 
 class RequesterApi(Resource):
     def get(self, requester_id):

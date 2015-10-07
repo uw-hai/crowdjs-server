@@ -82,6 +82,7 @@ def add_test_questions_and_task():
 from api.question_api import *
 api.add_resource(QuestionApi, '/questions/<question_id>')
 api.add_resource(QuestionListApi, '/questions')
+api.add_resource(QuestionAnswersApi, '/questions/<question_id>/answers')
 
 from api.answer_api import *
 api.add_resource(AnswerApi, '/answers/<answer_id>')
@@ -90,6 +91,7 @@ api.add_resource(AnswerListApi, '/answers')
 from api.task_api import *
 api.add_resource(TaskApi, '/tasks/<task_id>')
 api.add_resource(TaskListApi, '/tasks')
+api.add_resource(TaskQuestionsApi, '/tasks/<task_id>/questions')
 
 from api.worker_api import *
 api.add_resource(WorkerListApi, '/workers')

@@ -70,3 +70,11 @@ class TaskApi(Resource):
         d = json.loads(task.to_json())
         d['questions'] = json.loads(questions.to_json())
         return d
+
+class TaskQuestionsApi(Resource):
+    def get(self, task_id):
+        """
+        Get all questions contained in the given task.
+        """
+        questions = Question.objects(task=task_id)
+        return json.loads(questions.to_json())

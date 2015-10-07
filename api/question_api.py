@@ -2,6 +2,7 @@ from flask.ext.restful import reqparse, abort, Api, Resource
 import schema.question
 import schema.task
 import schema.requester
+import schema.answer
 import json
 
 
@@ -53,3 +54,11 @@ class QuestionListApi(Resource):
         questionDocument.save()
 
         return {'question_id' : str(questionDocument.id)}
+
+class QuestionAnswersApi(Resource):
+    def get(self, question_id):
+        """
+        Get all answers to a given question.
+        """
+        answers = schema.answer.Answer.objects(question=question_id)
+        return json.loads(answers.to_json())
