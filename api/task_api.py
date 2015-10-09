@@ -45,8 +45,10 @@ class TaskListApi(Resource):
         for question in questions:
             question_name = question['question_name']
             question_description = question['question_description']
+            question_data = question['question_data']
             questionDocument = Question(name = question_name,
                                         description = question_description,
+                                        data = question_data,
                                         task = taskDocument,
                                         requester = requester)
             questionDocuments.append(questionDocument)
