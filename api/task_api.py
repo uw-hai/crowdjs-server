@@ -46,14 +46,18 @@ class TaskListApi(Resource):
         for question in questions:
             question_name = question['question_name']
             question_description = question['question_description']
-            question_data = question['question_data']
-            valid_answers = question['valid_answers']
+
+            #optional fields
+            question_data = question.get('question_data',"")
+            valid_answers = question.get('valid_answers',[])
+
             questionDocument = Question(name = question_name,
                                         description = question_description,
                                         data = question_data,
                                         valid_answers = valid_answers,
                                         task = taskDocument,
                                         requester = requester)
+
             questionDocuments.append(questionDocument)
 
         #Only save the questions after loading all the questions
