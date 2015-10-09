@@ -6,5 +6,5 @@ class Question(db.Document):
     #TODO allow storing arbitrary data (i.e. photo)
     data = db.StringField(max_length=255)
     task = db.ReferenceField('Task')
-    valid_answers = db.ListField(db.StringField, default=[])
+    valid_answers = db.ListField(db.StringField(), default=[])
     requester = db.ReferenceField('Requester')
