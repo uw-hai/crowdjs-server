@@ -41,14 +41,17 @@ class TaskListApi(Resource):
         taskDocument.save()
 
         # Add questions to db
+        #TODO arguments are not checked!
         questionDocuments = []
         for question in questions:
             question_name = question['question_name']
             question_description = question['question_description']
             question_data = question['question_data']
+            valid_answers = question['valid_answers']
             questionDocument = Question(name = question_name,
                                         description = question_description,
                                         data = question_data,
+                                        valid_answers = valid_answers,
                                         task = taskDocument,
                                         requester = requester)
             questionDocuments.append(questionDocument)
