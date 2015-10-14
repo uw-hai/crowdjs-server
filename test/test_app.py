@@ -181,6 +181,28 @@ class AppTestCase(unittest.TestCase):
 
         rv = self.app.get('/questions/%s/answers' % test_question3_id)
         print rv.data
+
+        # TODO more rigorous testing of question assignment,
+        # including different stategies and checking of
+        # results based on what should be in the DB.
+
+        wt_pair = dict(worker_id=test_worker_id, task_id=task_id)
+        rv = self.app.get('/assign_next_question', content_type='application/json', data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        print rv.data
+        assign1 = json.loads(rv.data)['question_id']
+
+        rv = self.app.get('/assign_next_question', content_type='application/json', data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        print rv.data
+        assign2 = json.loads(rv.data)['question_id']
+
+        # CHECK HERE WITH DIFFERENT ASSIGNMENT STRATEGIES
+
+        rv = self.app.get('/assign_next_question?strategy=min_answers', content_type='application/json', data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        print rv.data
+        assign3 = json.loads(rv.data)['question_id']
         
     def tearDown(self):
         clear_db()

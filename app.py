@@ -2,7 +2,7 @@ import os, sys, traceback
 from flask import Flask
 from flask.ext.mongoengine import MongoEngine
 from flask.ext.restful import Api
-from flask.ext.security import Security, MongoEngineUserDatastore, login_required, login_user
+from flask.ext.security import Security, MongoEngineUserDatastore, login_required, login_user, current_user
 from flask.ext.security.registerable import register_user
 from flask.ext.mail import Mail
 import uuid
@@ -31,9 +31,8 @@ security = Security(app, user_datastore)
 print "Done loading security datastore. Ready to serve pages."
 sys.stdout.flush()
 
-@app.route('/')
-def hello():
-    print "Firing the missiles..."
+@app.before_first_request
+def add_test_users():
     try:
         test_user = schema.requester.Requester.objects.get(
             email='dan@crowdlab.com')
@@ -41,7 +40,28 @@ def hello():
         test_user = register_user(email='dan@crowdlab.com',
                                   password='chrisisawesome')
 
-    return 'Hello World! Dan Weld has been added to the DB!'
+@app.route('/')
+@login_required
+def hello():
+    # Print 
+#   print "Firing the missiles..."
+#   try:
+#       test_user = schema.requester.Requester.objects.get(
+#           email='dan@crowdlab.com')
+#   except:
+#       test_user = register_user(email='dan@crowdlab.com',
+#                                 password='chrisisawesome')
+
+#   return 'Hello World! Dan Weld has been added to the DB!'
+    return 'Hello World! Your username is %s' % current_user.email
+
+@app.route('/token')
+@login_required
+def give_me_my_token():
+    """
+    Requester needs to save this auth token in order to use the API.
+    """
+    return current_user.get_auth_token()
 
 @app.route('/logout')
 @login_required
@@ -86,6 +106,7 @@ api.add_resource(QuestionListApi, '/questions')
 api.add_resource(QuestionAnswersApi, '/questions/<question_id>/answers')
 #TODO not implemented yet
 #api.add_resource(QuestionAggregatedAnswerApi, '/questions/<question_id>/aggregated_answer')
+api.add_resource(NextQuestionApi, '/assign_next_question')
 
 from api.answer_api import *
 api.add_resource(AnswerApi, '/answers/<answer_id>')
