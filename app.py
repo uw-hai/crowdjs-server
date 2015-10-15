@@ -53,7 +53,10 @@ def hello():
 #                                 password='chrisisawesome')
 
 #   return 'Hello World! Dan Weld has been added to the DB!'
-    return 'Hello World! Your username is %s' % current_user.email
+    if current_user.is_authenticated():
+        return 'Hello World! Your username is %s' % current_user.email
+    else:
+        return "Hello World! You're not logged in, must be testing"
 
 @app.route('/token')
 @login_required
