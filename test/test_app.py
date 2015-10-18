@@ -373,11 +373,11 @@ class AppTestCase(unittest.TestCase):
         # XXX answer aggregation not implemented yet!
         # Test answer aggregation algorithms
         # Majority vote answer to question 1 is "cat"
-#       agg1 = dict(question_id = question1_id, strategy='majority_vote')
-#       rv = self.app.get('/aggregated_answer', content_type 'application/json', data=json.dumps(agg1))
-#       self.assertEqual(200, rv.status_code)
-#       agg1_answer = json.loads(rv.data)['answer_str']
-#       self.assertEqual("cat", agg1_answer)
+        agg1 = dict(question_id = question1_id, strategy='majority_vote')
+        rv = self.app.get('/aggregated_answer', content_type='application/json', data=json.dumps(agg1))
+        self.assertEqual(200, rv.status_code)
+        agg1_answer = json.loads(rv.data)['aggregated_answer']
+        self.assertEqual("cat", agg1_answer)
 
         print("Done populating DB.")
 
