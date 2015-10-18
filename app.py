@@ -107,9 +107,14 @@ from api.question_api import *
 api.add_resource(QuestionApi, '/questions/<question_id>')
 api.add_resource(QuestionListApi, '/questions')
 api.add_resource(QuestionAnswersApi, '/questions/<question_id>/answers')
-#TODO not implemented yet
-#api.add_resource(QuestionAggregatedAnswerApi, '/questions/<question_id>/aggregated_answer')
+
+# next question
+from api.assignment_api import *
 api.add_resource(NextQuestionApi, '/assign_next_question')
+
+#TODO not implemented yet
+from api.aggregation_api import *
+api.add_resource(AnswerAggregationApi, '/aggregated_answer')
 
 from api.answer_api import *
 api.add_resource(AnswerApi, '/answers/<answer_id>')
