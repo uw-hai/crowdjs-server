@@ -1,11 +1,13 @@
 import sys, traceback
 from flask import request
 from flask.ext.restful import reqparse, abort, Api, Resource
+from flask.ext.security import login_required, current_user, auth_token_required
 from schema.question import Question
 from schema.task import Task
 from schema.requester import Requester
 from flask.json import jsonify
 import json
+from app import app
 
 task_parser = reqparse.RequestParser()
 task_parser.add_argument('requester_id', type=str, required=True)
@@ -13,14 +15,28 @@ task_parser.add_argument('task_name', type=str, required=True)
 task_parser.add_argument('task_description', type=str, required=True)
 task_parser.add_argument('questions', type=list, location='json', required=False)
 
+
+#TODO make this a blueprint
+#@bp_tasks.route('/tasks', methods=['POST'])
+#@app.route('/tasks', methods=['POST'])
+#@auth_token_required
+#def post_new_task():
+#    return "YOUR TOKEN SHOULD MATCH: %s" %current_user.get_auth_token()
+
 class TaskListApi(Resource):
+    # Must be logged in to 
+    decorators = [login_required]
+
     def get(self):
         """
         Get list of all tasks.
         """
         tasks = Task.objects
         return json.loads(tasks.to_json())
+
     def put(self):
+        username = current_user
+        print username
         """
         Create a new task.
         """
@@ -64,8 +80,15 @@ class TaskListApi(Resource):
         #and making sure there are no errors
         for questionDocument in questionDocuments:
             questionDocument.save()
+
+        # Want to be able to answer included questions later, so need references to them
+        # XXX assuming unique question names! (i.e. it would make more sense to use those
+        # instead of the database IDs)
+        questionDocumentIDs = dict()
+        for questionDocument in questionDocuments:
+            questionDocumentIDs[questionDocument.name] = str(questionDocument.id)
         
-        return {'task_id' : str(taskDocument.id)}
+        return {'task_id' : str(taskDocument.id), 'question_ids' : questionDocumentIDs}
 
 class TaskApi(Resource):
     def get(self, task_id):
