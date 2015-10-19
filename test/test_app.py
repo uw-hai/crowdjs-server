@@ -370,14 +370,20 @@ class AppTestCase(unittest.TestCase):
         assign2_id = json.loads(rv.data)['question_id']
         self.assertEqual(question4_id, assign2_id)
 
-        # XXX answer aggregation not implemented yet!
         # Test answer aggregation algorithms
+
         # Majority vote answer to question 1 is "cat"
         agg1 = dict(question_id = question1_id, strategy='majority_vote')
         rv = self.app.get('/aggregated_answer', content_type='application/json', data=json.dumps(agg1))
         self.assertEqual(200, rv.status_code)
         agg1_answer = json.loads(rv.data)['aggregated_answer']
         self.assertEqual("cat", agg1_answer)
+
+        # Check that inference result was saved in DB
+        q1 = schema.question.Question.objects.get_or_404(id=question1_id)
+        saved_result = q1.inference_results[agg1['strategy']]
+        self.assertEqual(agg1_answer, saved_result)
+
 
         print("Done populating DB.")
 

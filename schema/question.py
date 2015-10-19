@@ -8,3 +8,5 @@ class Question(db.Document):
     task = db.ReferenceField('Task')
     valid_answers = db.ListField(db.StringField(), default=[])
     requester = db.ReferenceField('Requester')
+    # strategy -> answer mapping
+    inference_results = db.DictField()

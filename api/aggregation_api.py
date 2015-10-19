@@ -23,6 +23,13 @@ class AnswerAggregationApi(Resource):
 
         # call
         aggregated_answer = self.aggregated_answer(question, strategy)
+
+        # save aggregation result (strategy, answer) in DB
+        # TODO decide when to update inference results for each strategy,
+        # currently doing it lazily.
+        question.inference_results[strategy] = aggregated_answer
+        question.save()
+
         return {'question_id': str(question.id),
                 'aggregated_answer': str(aggregated_answer)}
 
