@@ -1,3 +1,6 @@
 [submodule "zmdp"]
 	path = zmdp
 	url = https://github.com/jbragg/zmdp.git
+[submodule "crowd-estimate"]
+	path = crowd-estimate
+	url = https://github.com/jbragg/crowd-estimate
