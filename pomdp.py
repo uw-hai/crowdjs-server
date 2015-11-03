@@ -4,6 +4,7 @@ import os
 import subprocess
 import tempfile
 import shutil
+import pomdp_policy
 
 class POMDP(object):
     """Base POMDP class."""
@@ -75,5 +76,14 @@ class ZPOMDP(POMDP):
                 '-o', policy_filename]
         if timeout:
             args += ['-t', str(timeout)]
-        subprocess.call(args)
+
+        exit_status = subprocess.call(args)
+
+        # NOTE check that solver ran successfully
+        assert exit_status == 0
+
+        # parse policy output
+        policy = pomdp_policy.POMDPPolicy(policy_filename, file_format='zmdp', n_states=len(states))
+
         shutil.rmtree(d)
+        return policy
