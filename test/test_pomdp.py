@@ -89,6 +89,7 @@ class POMDPTestCase(unittest.TestCase):
         #
         print "belief =",belief
         print "best action, expected reward = ", policy.get_best_action(belief)
+        print "Hit Enter to Continue"
         raw_input()
 
 if __name__ == '__main__':
