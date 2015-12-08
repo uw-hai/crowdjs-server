@@ -34,14 +34,16 @@ class TaskListApi(Resource):
         tasks = Task.objects
         return json.loads(tasks.to_json())
 
+    @auth_token_required
     def put(self):
-        username = current_user
-        print username
         """
         Create a new task.
         """
         args = task_parser.parse_args()
         requester_id = args['requester_id']
+        if not str(current_user.id) == requester_id:
+            return "Sorry, your api token is not correct"
+
         task_name = args['task_name']
         task_description = args['task_description']
         questions = args['questions']
