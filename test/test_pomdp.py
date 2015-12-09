@@ -187,6 +187,14 @@ class POMDPTestCase(unittest.TestCase):
         self.assertEqual(expected_action, action)
         self.assertAlmostEqual(expected_reward, reward)
 
+        #XXX set belief uniform over all non-terminal states
+        #belief = [1.0/len(peng_pomdp.states) for i in range(len(peng_pomdp.states))]
+        #belief = [2.0/len(peng_pomdp.states) if not get_state(s)[2] else 0 for s in peng_pomdp.states]
+        belief = [1.0/(len(peng_pomdp.states)-1) if not pomdp_peng.is_terminal_state(s) else 0.0 for s in peng_pomdp.states]
+
+        #
+        print "belief =",belief
+        print "best action, expected reward = ", policy.get_best_action(belief)
 
 if __name__ == '__main__':
     unittest.main()

@@ -104,36 +104,36 @@ def add_test_questions_and_task():
 # API routes go here.
 
 from api.question_api import *
-api.add_resource(QuestionApi, '/questions/<question_id>')
-api.add_resource(QuestionListApi, '/questions')
-api.add_resource(QuestionAnswersApi, '/questions/<question_id>/answers')
+api.add_resource(QuestionApi, '/questions/<question_id>') #UNSECURED
+api.add_resource(QuestionListApi, '/questions') #UNSECURED
+api.add_resource(QuestionAnswersApi, '/questions/<question_id>/answers') #UNSECURED
 
 # next question
 from api.assignment_api import *
-api.add_resource(NextQuestionApi, '/assign_next_question')
+api.add_resource(NextQuestionApi, '/assign_next_question') #UNSECURED
 
 #TODO not implemented yet
 from api.aggregation_api import *
-api.add_resource(AnswerAggregationApi, '/aggregated_answer')
+api.add_resource(AnswerAggregationApi, '/aggregated_answer') #UNSECURED
 
 from api.answer_api import *
-api.add_resource(AnswerApi, '/answers/<answer_id>')
-api.add_resource(AnswerListApi, '/answers')
+api.add_resource(AnswerApi, '/answers/<answer_id>') #UNSECURED
+api.add_resource(AnswerListApi, '/answers') #UNSECURED
 
 from api.task_api import *
-api.add_resource(TaskApi, '/tasks/<task_id>')
-api.add_resource(TaskListApi, '/tasks')
-api.add_resource(TaskQuestionsApi, '/tasks/<task_id>/questions')
+api.add_resource(TaskApi, '/tasks/<task_id>') #UNSECURED
+api.add_resource(TaskListApi, '/tasks') 
+api.add_resource(TaskQuestionsApi, '/tasks/<task_id>/questions') #UNSECURED
 
 from api.worker_api import *
-api.add_resource(WorkerListApi, '/workers')
-api.add_resource(WorkerApi, '/workers/<worker_id>')
-api.add_resource(WorkerAnswersApi, '/workers/<worker_id>/answers')
+api.add_resource(WorkerListApi, '/workers') #UNSECURED
+api.add_resource(WorkerApi, '/workers/<worker_id>') #UNSECURED
+api.add_resource(WorkerAnswersApi, '/workers/<worker_id>/answers') #UNSECURED
 #TODO not implemented yet
 #api.add_resource(WorkerSkillApi, '/workers/<worker_id>/skill')
 #api.add_resource(WorkerPerTaskSkillApi, '/workers/<worker_id>/skill/<task_id>')
 
 from api.requester_api import *
-api.add_resource(RequesterListApi, '/requesters')
-api.add_resource(RequesterApi, '/requesters/<requester_id>')
-api.add_resource(RequesterTasksApi, '/requesters/<requester_id>/tasks')
+api.add_resource(RequesterListApi, '/requesters') #UNSECURED
+api.add_resource(RequesterApi, '/requesters/<requester_id>') #UNSECURED
+api.add_resource(RequesterTasksApi, '/requesters/<requester_id>/tasks') #UNSECURED

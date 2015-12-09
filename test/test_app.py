@@ -22,6 +22,7 @@ class AppTestCase(unittest.TestCase):
         with app.app_context():
             self.test_requester = register_user(email='dan@crowdlab.com',
                                                 password='chrisisawesome')
+            self.test_requester_api_key = self.test_requester.get_auth_token()
 
     def test_add_test_questions_and_task(self):
         requesters = schema.requester.Requester.objects(
@@ -53,6 +54,15 @@ class AppTestCase(unittest.TestCase):
         rv = self.app.put('/tasks',
                           content_type='application/json',
                           data=json.dumps(test_task))
+        self.assertEqual(401, rv.status_code)
+
+        rv = self.app.put('/tasks', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(test_task))
+        self.assertEqual(200, rv.status_code)
+
+        
         task_id = json.loads(rv.data)['task_id']
 
         self.assertEqual(200, rv.status_code)
@@ -66,12 +76,21 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         self.assertEqual(task_id, get_task['_id']['$oid'])
 
-        # TEST add question to existing task
         test_task2 = dict(task_name = uuid.uuid1().hex, task_description = 'test task 2', requester_id = str(self.test_requester.id))
-        rv2 = self.app.put('/tasks', content_type='application/json',data=json.dumps(test_task2))
+        rv2 = self.app.put('/tasks', content_type='application/json',
+                           data=json.dumps(test_task2))
+        self.assertEqual(401, rv2.status_code)
+        
+        rv2 = self.app.put('/tasks', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(test_task2))
+        self.assertEqual(200, rv2.status_code)
+
         task_id2 = json.loads(rv2.data)['task_id']
         self.assertEqual(200, rv.status_code)
 
+        # TEST add question to existing task
         test_question3_name = uuid.uuid1().hex
         test_question3_description = "question 3 description here"
         test_question3 = dict(question_name=test_question3_name,
@@ -215,11 +234,18 @@ class AppTestCase(unittest.TestCase):
         rv = self.app.put('/requesters', content_type='application/json', data=json.dumps(requester1))
         self.assertEqual(200, rv.status_code)
         requester1_id = json.loads(rv.data)['requester_id']
+        with app.app_context():
+            requester1_token = user_datastore.get_user(
+                requester1_id).get_auth_token()
 
-        requester2 = dict(email = "sethv1+2@cs.uw.edu", password="sethsbadpassword")
+        requester2 = dict(email = "sethv1+2@cs.uw.edu",
+                          password="sethsbadpassword")
         rv = self.app.put('/requesters', content_type='application/json', data=json.dumps(requester2))
         self.assertEqual(200, rv.status_code)
         requester2_id = json.loads(rv.data)['requester_id']
+        with app.app_context():
+            requester2_token = user_datastore.get_user(
+                requester2_id).get_auth_token()
 
         # questions without task + requester (MUST BE ADDED AS PART OF A TASK)
         question1 = dict(question_name = "q1 name", question_description = "q1 desc", question_data = "data11111",
@@ -232,8 +258,12 @@ class AppTestCase(unittest.TestCase):
         task2 = dict(task_name = "test task where questions loaded later", task_description = "t2 desc",
                         requester_id = requester2_id)
 
-        rv = self.app.put('/tasks', content_type='application/json', data=json.dumps(task1))
+
+        rv = self.app.put('/tasks', content_type='application/json',
+                          headers={'Authentication-Token': requester1_token},
+                          data=json.dumps(task1))
         self.assertEqual(200, rv.status_code)
+        
         task1_id = json.loads(rv.data)['task_id']
         task1_q_ids = json.loads(rv.data)['question_ids']
 
@@ -242,8 +272,13 @@ class AppTestCase(unittest.TestCase):
         question1_id = task1_q_ids[question1['question_name']]
         question2_id = task1_q_ids[question2['question_name']]
 
-        rv = self.app.put('/tasks', content_type='application/json', data=json.dumps(task2))
+
+        rv = self.app.put('/tasks', content_type='application/json',
+                          headers={'Authentication-Token': requester2_token},
+                          data=json.dumps(task2))
         self.assertEqual(200, rv.status_code)
+
+        
         task2_id = json.loads(rv.data)['task_id']
         task2_q_ids = json.loads(rv.data)['question_ids']
         # XXX should still return empty dict of qname -> id pairs
