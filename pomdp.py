@@ -77,6 +77,7 @@ class ZPOMDP(POMDP):
         if timeout:
             args += ['-t', str(timeout)]
 
+        print args
         exit_status = subprocess.call(args)
 
         # NOTE check that solver ran successfully
@@ -85,5 +86,5 @@ class ZPOMDP(POMDP):
         # parse policy output
         policy = pomdp_policy.POMDPPolicy(policy_filename, file_format='zmdp', n_states=len(states))
 
-        shutil.rmtree(d)
+        #shutil.rmtree(d)
         return policy
