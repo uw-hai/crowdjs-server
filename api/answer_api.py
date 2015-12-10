@@ -6,8 +6,9 @@ from schema.worker import Worker
 import json
 
 answer_parser = reqparse.RequestParser()
-answer_parser.add_argument('question_id', type=str, required=True)
+answer_parser.add_argument('question_name', type=str, required=True)
 answer_parser.add_argument('worker_id', type=str, required=True)
+answer_parser.add_argument('worker_source', type=str, required=True)
 answer_parser.add_argument('value', type=str, required=True)
 
 class AnswerListApi(Resource):
@@ -23,13 +24,24 @@ class AnswerListApi(Resource):
         """
         args = answer_parser.parse_args()
         
-        question_id = args['question_id']
+        question_name = args['question_name']
         worker_id = args['worker_id']
+        worker_source = args['worker_source']
         value = args['value']
         
-        question = Question.objects.get_or_404(id=question_id)
-        worker = Worker.objects.get_or_404(id=worker_id)
-
+        question = Question.objects.get_or_404(name=question_name)
+        
+        if worker_source == 'mturk':
+            try:
+                worker = Worker.objects.get(platform_id = worker_id,
+                                            platform_name = 'mturk')
+            except:
+                worker = Worker(platform_id = worker_id,
+                                platform_name = 'mturk')
+                worker.save()
+        else:
+            return 'Sorry, you have not provided a valid worker source. The worker source must be one of [mturk,]'
+        
         answer = Answer(value = value,
                         question = question,
                         worker = worker)
@@ -38,8 +50,7 @@ class AnswerListApi(Resource):
         
         #return "Answer inserted"
         #TODO what to return
-        return {'answer_id' : str(answer.id),
-                'value' : answer.value}
+        return {'value' : answer.value}
 
 class AnswerApi(Resource):
     def get(self, answer_id):

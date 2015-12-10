@@ -1,4 +1,5 @@
 from app import db
 
 class Worker(db.Document):
-    turk_id = db.StringField()
+    platform_id = db.StringField()
+    platform_name = db.StringField()

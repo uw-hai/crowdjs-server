@@ -13,6 +13,7 @@ nextq_parser = reqparse.RequestParser()
 #TODO:
 #The worker id should not be required
 nextq_parser.add_argument('worker_id', type=str, required=True)
+nextq_parser.add_argument('worker_source', type=str, required=True)
 nextq_parser.add_argument('task_id', type=str, required=True)
 nextq_parser.add_argument('requester_id', type=str, required=True)
 nextq_parser.add_argument('strategy', type=str, required=False,
@@ -45,6 +46,7 @@ class NextQuestionApi(Resource):
         task = schema.task.Task.objects.get_or_404(id=task_id)
         
         worker_id = args['worker_id']
+        worker_source = args['worker_source']
         if worker_id is None:
             return "missing worker_id"
 

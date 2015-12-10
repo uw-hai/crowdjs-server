@@ -95,14 +95,9 @@ class TaskListApi(Resource):
         for questionDocument in questionDocuments:
             questionDocument.save()
 
-        # Want to be able to answer included questions later, so need references to them
-        # XXX assuming unique question names! (i.e. it would make more sense to use those
-        # instead of the database IDs)
-        questionDocumentIDs = dict()
-        for questionDocument in questionDocuments:
-            questionDocumentIDs[questionDocument.name] = str(questionDocument.id)
+
         
-        return {'task_id' : str(taskDocument.id), 'question_ids' : questionDocumentIDs}
+        return {'task_id' : str(taskDocument.id) }
 
 class TaskApi(Resource):
     def get(self, task_id):

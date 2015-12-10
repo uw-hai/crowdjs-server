@@ -150,37 +150,46 @@ class AppTestCase(unittest.TestCase):
         ret_data = json.loads(rv.data)
         self.assertEqual(3, len(ret_data))
 
+
+        ###
+        # There maybe should not be an API for adding/modifying workers
+        ###
         # Add worker
-        test_turk_id = "xxxTEST_TURK_ID"
-        test_worker = dict(turk_id = test_turk_id)
-        rv = self.app.put('/workers', content_type='application/json', data=json.dumps(test_worker))
-        get_worker = json.loads(rv.data)
-        test_worker_id = get_worker['worker_id']
+        #test_turk_id = "xxxTEST_TURK_ID"
+        #test_worker = dict(turk_id = test_turk_id)
+        #rv = self.app.put('/workers', content_type='application/json', data=json.dumps(test_worker))
+        #get_worker = json.loads(rv.data)
+        #test_worker_id = get_worker['worker_id']
 
         # Check that worker was successfully added
-        rv = self.app.get('/workers/%s' % test_worker_id)
-        get_worker = json.loads(rv.data)
-        saved_worker_id = get_worker['turk_id']
-        self.assertEqual(test_turk_id, saved_worker_id)
+        #rv = self.app.get('/workers/%s' % test_worker_id)
+        #get_worker = json.loads(rv.data)
+        #saved_worker_id = get_worker['turk_id']
+        #self.assertEqual(test_turk_id, saved_worker_id)
 
+        test_worker_id = 'MTURK123XYZ'
+        test_worker_source = 'mturk'
+        
         # Test adding an answer
-        test_answer = dict(question_id=test_question3_id, worker_id=test_worker_id, value="test answer value")
-        rv = self.app.put('/answers', content_type='application/json', data=json.dumps(test_answer))
+        test_answer = dict(question_name=test_question3_name,
+                           worker_id=test_worker_id,
+                           worker_source=test_worker_source,
+                           value="test answer value")
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
         #expected_add_answer_rv = "Answer inserted"
         expected_add_answer_rv = "test answer value"
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
-        test_answer_id = get_answer['answer_id']
         self.assertEqual(get_answer['value'], expected_add_answer_rv)
 
         # check that answer value is correct and was added to the question
-        rv = self.app.get('/answers/%s' % test_answer_id)
-        ret_data = json.loads(rv.data)
+        rv = self.app.get('/answers')
+        ret_data = json.loads(rv.data)[0]
         self.assertEqual(200, rv.status_code)
-        self.assertEqual(ret_data['answer_id'], test_answer_id)
         self.assertEqual(ret_data['value'], test_answer['value'])
-        self.assertEqual(ret_data['question_id'], test_answer['question_id'])
-        self.assertEqual(ret_data['worker_id'], test_answer['worker_id'])
+        self.assertEqual(ret_data['question']['$oid'],
+                         test_question3_id)
 
         # test /requesters functionality
         rv = self.app.get('/requesters')
@@ -212,13 +221,13 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(2, len(ret_data))
 
 
-        rv = self.app.get('/workers')
+        #rv = self.app.get('/workers')
         #print rv.data
 
-        rv = self.app.get('/workers/%s' % test_worker_id)
+        #rv = self.app.get('/workers/%s' % test_worker_id)
         #print rv.data
 
-        rv = self.app.get('/workers/%s/answers' % test_worker_id)
+        #rv = self.app.get('/workers/%s/answers' % test_worker_id)
         #print rv.data
 
         rv = self.app.get('/tasks/%s/questions' % task_id)
@@ -231,7 +240,9 @@ class AppTestCase(unittest.TestCase):
         # including different stategies and checking of
         # results based on what should be in the DB.
 
-        wt_pair = dict(worker_id=test_worker_id, task_id=task_id,
+        wt_pair = dict(worker_id=test_worker_id,
+                       worker_source=test_worker_source,
+                       task_id=task_id,
                        requester_id=str(self.test_requester.id))
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
@@ -293,9 +304,11 @@ class AppTestCase(unittest.TestCase):
                 requester2_id).get_auth_token()
 
         # questions without task + requester (MUST BE ADDED AS PART OF A TASK)
-        question1 = dict(question_name = "q1 name", question_description = "q1 desc", question_data = "data11111",
+        question1_name = 'q1 name'
+        question2_name = 'q2 name'
+        question1 = dict(question_name = question1_name, question_description = "q1 desc", question_data = "data11111",
                         valid_answers = ["cat", "dog"])
-        question2 = dict(question_name = "q2 name", question_description = "q2 desc", question_data = "data22222")
+        question2 = dict(question_name = question2_name, question_description = "q2 desc", question_data = "data22222")
 
         #Add tasks
         task1 = dict(task_name = "test task w/preloaded Qs", task_description = "description here",
@@ -310,13 +323,7 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         
         task1_id = json.loads(rv.data)['task_id']
-        task1_q_ids = json.loads(rv.data)['question_ids']
-
-        # XXX set question1, question2 to be their respective question IDs. How?
-        # Need their IDs to be able to answer them.
-        question1_id = task1_q_ids[question1['question_name']]
-        question2_id = task1_q_ids[question2['question_name']]
-
+        
         rv = self.app.put('/tasks', content_type='application/json',
                           headers={'Authentication-Token': requester2_token},
                           data=json.dumps(task2))
@@ -324,99 +331,125 @@ class AppTestCase(unittest.TestCase):
 
         
         task2_id = json.loads(rv.data)['task_id']
-        task2_q_ids = json.loads(rv.data)['question_ids']
-        # XXX should still return empty dict of qname -> id pairs
-        self.assertEqual({}, task2_q_ids)
 
         # add questions 3-5 to task2
-        question3 = dict(question_name = "q3 name", question_description = "q3 desc", question_data = "data3333333333",
+        question3_name = 'q3 name'
+        question4_name = 'q4 name'
+        question5_name = 'q5 name'
+        
+        question3 = dict(question_name = question3_name, question_description = "q3 desc", question_data = "data3333333333",
                                 task_id = task2_id, requester_id = requester2_id)
-        question4 = dict(question_name = "q4 name", question_description = "q4 desc", question_data = "data4444444444444",
+        question4 = dict(question_name = question4_name, question_description = "q4 desc", question_data = "data4444444444444",
                                 task_id = task2_id, requester_id = requester2_id)
-        question5 = dict(question_name = "q5 name", question_description = "q5 desc", question_data = "data55555",
+        question5 = dict(question_name = question5_name, question_description = "q5 desc", question_data = "data55555",
                                 task_id = task2_id, requester_id = requester2_id, valid_answers = ["animal", "vegetable", "mineral"])
 
-        rv = self.app.put('/questions', content_type='application/json', data=json.dumps(question3))
+        rv = self.app.put('/questions', content_type='application/json',
+                          data=json.dumps(question3))
         self.assertEqual(200, rv.status_code)
         question3_id = json.loads(rv.data)['question_id']
-
+        
         rv = self.app.put('/questions', content_type='application/json', data=json.dumps(question4))
         self.assertEqual(200, rv.status_code)
         question4_id = json.loads(rv.data)['question_id']
-
+        
+        
         rv = self.app.put('/questions', content_type='application/json', data=json.dumps(question5))
         self.assertEqual(200, rv.status_code)
         question5_id = json.loads(rv.data)['question_id']
 
+
         # Add workers
+        ###
+        # DONT NEED TO ADD WORKERS
+        ###
+        worker_platform = 'mturk'        
+        worker1 = dict(platform_id = "turk1", platform_name=worker_platform)
+        worker2 = dict(platform_id = "turk2", platform_name=worker_platform)
+        worker3 = dict(platform_id = "turk3", platform_name=worker_platform)
 
-        worker1 = dict(turk_id = "turk1")
-        worker2 = dict(turk_id = "turk2")
-        worker3 = dict(turk_id = "turk3")
+        #rv = self.app.put('/workers', content_type='application/json', data=json.dumps(worker1))
+        #self.assertEqual(200, rv.status_code)
+        #worker1_id = json.loads(rv.data)['worker_id']
 
-        rv = self.app.put('/workers', content_type='application/json', data=json.dumps(worker1))
-        self.assertEqual(200, rv.status_code)
-        worker1_id = json.loads(rv.data)['worker_id']
+        #rv = self.app.put('/workers', content_type='application/json', data=json.dumps(worker2))
+        #self.assertEqual(200, rv.status_code)
+        #worker2_id = json.loads(rv.data)['worker_id']
 
-        rv = self.app.put('/workers', content_type='application/json', data=json.dumps(worker2))
-        self.assertEqual(200, rv.status_code)
-        worker2_id = json.loads(rv.data)['worker_id']
-
-        rv = self.app.put('/workers', content_type='application/json', data=json.dumps(worker3))
-        self.assertEqual(200, rv.status_code)
-        worker3_id = json.loads(rv.data)['worker_id']
-
+        #rv = self.app.put('/workers', content_type='application/json', data=json.dumps(worker3))
+        #self.assertEqual(200, rv.status_code)
+        #worker3_id = json.loads(rv.data)['worker_id']
+        
+        
         # Add answers
 
-        answer1 = dict(value = "dog", question_id = question1_id, worker_id = worker1_id)
-        answer2 = dict(value = "dog", question_id = question2_id, worker_id = worker1_id)
+        answer1 = dict(value = "dog", question_name = question1_name,
+                       worker_id = worker1['platform_id'],
+                       worker_source=worker_platform)
+        answer2 = dict(value = "dog", question_name = question2_name,
+                       worker_id = worker1['platform_id'],
+                       worker_source=worker_platform)
 
-        answer3 = dict(value = "cat", question_id = question1_id, worker_id = worker2_id)
-        answer4 = dict(value = "husky", question_id = question5_id, worker_id = worker2_id)
+        answer3 = dict(value = "cat", question_name = question1_name,
+                       worker_id = worker2['platform_id'],
+                       worker_source=worker_platform)
+        answer4 = dict(value = "husky", question_name = question5_name,
+                       worker_id = worker2['platform_id'],
+                       worker_source=worker_platform)
 
-        answer5 = dict(value = "cat", question_id = question1_id, worker_id = worker3_id)
-        answer6 = dict(value = "apple", question_id = question3_id, worker_id = worker3_id)
-        answer7 = dict(value = "biscuit", question_id = question4_id, worker_id = worker3_id)
-        answer8 = dict(value = "husky dog", question_id = question5_id, worker_id = worker3_id)
+        answer5 = dict(value = "cat", question_name = question1_name,
+                       worker_id = worker3['platform_id'],
+                       worker_source=worker_platform)
+        answer6 = dict(value = "apple", question_name = question3_name,
+                       worker_id = worker3['platform_id'],
+                       worker_source=worker_platform)
+        answer7 = dict(value = "biscuit", question_name = question4_name,
+                       worker_id = worker3['platform_id'],
+                       worker_source=worker_platform)
+        answer8 = dict(value = "husky dog", question_name = question5_name,
+                       worker_id = worker3['platform_id'],
+                       worker_source=worker_platform)
 
         # XXX added another answer to question 3 by worker 1
-        answer9 = dict(value = "good answer", question_id = question3_id, worker_id = worker1_id)
+        answer9 = dict(value = "good answer", question_name = question3_name,
+                       worker_id = worker1['platform_id'],
+                       worker_source=worker_platform)
 
         rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer1))
         self.assertEqual(200, rv.status_code)
-        answer1_id = json.loads(rv.data)['answer_id']
+        #answer1_id = json.loads(rv.data)['answer_id']
 
         rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer2))
         self.assertEqual(200, rv.status_code)
-        answer2_id = json.loads(rv.data)['answer_id']
+        #answer2_id = json.loads(rv.data)['answer_id']
 
         rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer3))
         self.assertEqual(200, rv.status_code)
-        answer3_id = json.loads(rv.data)['answer_id']
+        #answer3_id = json.loads(rv.data)['answer_id']
 
         rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer4))
         self.assertEqual(200, rv.status_code)
-        answer4_id = json.loads(rv.data)['answer_id']
+        #answer4_id = json.loads(rv.data)['answer_id']
 
         rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer5))
         self.assertEqual(200, rv.status_code)
-        answer5_id = json.loads(rv.data)['answer_id']
+        #answer5_id = json.loads(rv.data)['answer_id']
 
         rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer6))
         self.assertEqual(200, rv.status_code)
-        answer6_id = json.loads(rv.data)['answer_id']
+        #answer6_id = json.loads(rv.data)['answer_id']
 
         rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer7))
         self.assertEqual(200, rv.status_code)
-        answer7_id = json.loads(rv.data)['answer_id']
+        #answer7_id = json.loads(rv.data)['answer_id']
 
         rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer8))
         self.assertEqual(200, rv.status_code)
-        answer8_id = json.loads(rv.data)['answer_id']
+        #answer8_id = json.loads(rv.data)['answer_id']
 
         rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer9))
         self.assertEqual(200, rv.status_code)
-        answer9_id = json.loads(rv.data)['answer_id']
+        #answer9_id = json.loads(rv.data)['answer_id']
 
         # Done adding to DB
         # Should have:
@@ -436,7 +469,8 @@ class AppTestCase(unittest.TestCase):
         # Test question assignment algorithms
 
         # Task 1's least answered question is question 2
-        assign1 = dict(worker_id = worker1_id,
+        assign1 = dict(worker_id = worker1['platform_id'],
+                       worker_source = worker_platform,
                        task_id = task1_id,
                        requester_id = requester1_id,
                        strategy = 'min_answers')
@@ -450,7 +484,9 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(question2['question_name'], assign1_name)
 
         # Task 2's least answered question is question 4
-        assign2 = dict(worker_id = worker1_id, task_id = task2_id,
+        assign2 = dict(worker_id = worker1['platform_id'],
+                       worker_source = worker_platform,
+                       task_id = task2_id,
                        requester_id = requester2_id,
                        strategy = 'min_answers')
         rv = self.app.get('/assign_next_question',
@@ -474,14 +510,18 @@ class AppTestCase(unittest.TestCase):
         # Test answer aggregation algorithms
 
         # Majority vote answer to question 1 is "cat"
-        agg1 = dict(question_id = question1_id, strategy='majority_vote')
-        rv = self.app.get('/aggregated_answer', content_type='application/json', data=json.dumps(agg1))
+        agg1 = dict(question_name = question1['question_name'],
+                    strategy='majority_vote')
+        rv = self.app.get('/aggregated_answer',
+                          content_type='application/json',
+                          data=json.dumps(agg1))
         self.assertEqual(200, rv.status_code)
         agg1_answer = json.loads(rv.data)['aggregated_answer']
         self.assertEqual("cat", agg1_answer)
 
         # Check that inference result was saved in DB
-        q1 = schema.question.Question.objects.get_or_404(id=question1_id)
+        q1 = schema.question.Question.objects.get_or_404(
+            name=question1['question_name'])
         saved_result = q1.inference_results[agg1['strategy']]
         self.assertEqual(agg1_answer, saved_result)
 

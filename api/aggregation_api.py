@@ -7,7 +7,7 @@ import json
 from collections import Counter
 
 answer_agg_parser = reqparse.RequestParser()
-answer_agg_parser.add_argument('question_id', type=str, required=True)
+answer_agg_parser.add_argument('question_name', type=str, required=True)
 answer_agg_parser.add_argument('strategy', type=str, required=True)
 
 class AnswerAggregationApi(Resource):
@@ -16,10 +16,10 @@ class AnswerAggregationApi(Resource):
         Get list of all answers.
         """
         args = answer_agg_parser.parse_args()
-        question_id = args['question_id']
+        question_name = args['question_name']
         strategy = args['strategy']
         
-        question = Question.objects.get_or_404(id=question_id)
+        question = Question.objects.get_or_404(name=question_name)
 
         # call
         aggregated_answer = self.aggregated_answer(question, strategy)
@@ -30,7 +30,7 @@ class AnswerAggregationApi(Resource):
         question.inference_results[strategy] = aggregated_answer
         question.save()
 
-        return {'question_id': str(question.id),
+        return {'question_id': str(question.name),
                 'aggregated_answer': str(aggregated_answer)}
 
     def aggregated_answer(self, question, strategy):
