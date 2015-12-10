@@ -3,6 +3,7 @@ from flask import url_for
 from schema.answer import Answer
 from schema.question import Question
 from schema.worker import Worker
+import datetime
 import json
 
 answer_parser = reqparse.RequestParser()
@@ -41,10 +42,12 @@ class AnswerListApi(Resource):
                 worker.save()
         else:
             return 'Sorry, you have not provided a valid worker source. The worker source must be one of [mturk,]'
-        
-        answer = Answer(value = value,
-                        question = question,
-                        worker = worker)
+
+        answer = Answer.objects.first_or_404(question = question,
+                                              worker = worker,
+                                              status = 'Assigned')
+        answer.complete_time = datettime.now()
+        answer.value = value                                              
 
         answer.save()
         

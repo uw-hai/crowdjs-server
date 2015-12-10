@@ -1,5 +1,6 @@
 from flask.ext.restful import reqparse, abort, Api, Resource
 from flask.ext.security import login_required, current_user, auth_token_required
+import datetime
 import schema.question
 import schema.task
 import schema.requester
@@ -56,7 +57,14 @@ class NextQuestionApi(Resource):
             question = self.random_choice(task_id, worker_id)
         else:
             return "error: INVALID STRATEGY"
+        
+        answer = Answer(question = question,
+                        worker = worker,
+                        status = 'Assigned',
+                        assign_time=datetime.now)
 
+        answer.save()
+        
         return {'question_name' : str(question.name)}
 
     def random_choice(self, task_id, worker_id):
