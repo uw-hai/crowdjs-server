@@ -1,15 +1,22 @@
 from flask.ext.restful import reqparse, abort, Api, Resource
+from flask.ext.security import login_required, current_user, auth_token_required
 import schema.question
 import schema.task
 import schema.requester
 import schema.answer
 import json
 import random
+from util import check_requester_token_match
+
 
 nextq_parser = reqparse.RequestParser()
+#TODO:
+#The worker id should not be required
 nextq_parser.add_argument('worker_id', type=str, required=True)
 nextq_parser.add_argument('task_id', type=str, required=True)
-nextq_parser.add_argument('strategy', type=str, required=False, default='random')
+nextq_parser.add_argument('requester_id', type=str, required=True)
+nextq_parser.add_argument('strategy', type=str, required=False,
+                          default='random')
 
 class NextQuestionApi(Resource):
     """
@@ -17,6 +24,9 @@ class NextQuestionApi(Resource):
     GET /url with JSON={worker_id:XXX, task_id:XXX [,strategy:XXX]}
     """
 
+    decorators = [login_required]
+
+    @auth_token_required
     def get(self):
 
         """
@@ -26,6 +36,11 @@ class NextQuestionApi(Resource):
         args = nextq_parser.parse_args()
         strategy = args['strategy']
         task_id = args['task_id']
+
+        requester_id = args['requester_id']
+        
+        if check_requester_token_match(requester_id):
+            return "Sorry, your api token is not correct"
 
         task = schema.task.Task.objects.get_or_404(id=task_id)
         
@@ -40,7 +55,7 @@ class NextQuestionApi(Resource):
         else:
             return "error: INVALID STRATEGY"
 
-        return {'question_id' : str(question.id)}
+        return {'question_name' : str(question.name)}
 
     def random_choice(self, task_id, worker_id):
         task = schema.task.Task.objects.get_or_404(id=task_id)

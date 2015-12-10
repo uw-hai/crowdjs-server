@@ -110,7 +110,7 @@ api.add_resource(QuestionAnswersApi, '/questions/<question_id>/answers') #UNSECU
 
 # next question
 from api.assignment_api import *
-api.add_resource(NextQuestionApi, '/assign_next_question') #UNSECURED
+api.add_resource(NextQuestionApi, '/assign_next_question')
 
 #TODO not implemented yet
 from api.aggregation_api import *

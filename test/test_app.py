@@ -44,8 +44,8 @@ class AppTestCase(unittest.TestCase):
                               requester_id = str(self.test_requester.id))
 
 
+        #Add one task
         test_task_name = uuid.uuid1().hex
-        
         test_task = dict(task_name = test_task_name,
                          task_description = 'test task with 2 questions',
                          requester_id = str(self.test_requester.id),
@@ -76,7 +76,10 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         self.assertEqual(task_id, get_task['_id']['$oid'])
 
-        test_task2 = dict(task_name = uuid.uuid1().hex, task_description = 'test task 2', requester_id = str(self.test_requester.id))
+        #Add a second task
+        test_task2 = dict(task_name = uuid.uuid1().hex,
+                          task_description = 'test task 2',
+                          requester_id = str(self.test_requester.id))
         rv2 = self.app.put('/tasks', content_type='application/json',
                            data=json.dumps(test_task2))
         self.assertEqual(401, rv2.status_code)
@@ -90,6 +93,29 @@ class AppTestCase(unittest.TestCase):
         task_id2 = json.loads(rv2.data)['task_id']
         self.assertEqual(200, rv.status_code)
 
+        #Get these tasks by requester
+        rv = self.app.get('/tasks', content_type = 'application/json')
+        self.assertEqual(401, rv.status_code)
+
+        rv = self.app.get('/tasks', content_type = 'application/json',
+                          headers={'Authentication-Token':
+                                   'blah'})
+        self.assertEqual(401, rv.status_code)
+
+        get_request = dict(requester_id = str(self.test_requester.id))
+        rv = self.app.get('/tasks', content_type = 'application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(get_request))
+        self.assertEqual(200, rv.status_code)
+        tasks = json.loads(rv.data)
+        task_ids = [x['_id']['$oid'] for x in tasks]
+        self.assertEqual(2, len(tasks))
+        self.assertIn(task_id, task_ids)
+        self.assertIn(task_id2, task_ids)
+        self.assertNotEqual(task_ids[0], task_ids[1])
+
+            
         # TEST add question to existing task
         test_question3_name = uuid.uuid1().hex
         test_question3_description = "question 3 description here"
@@ -205,23 +231,42 @@ class AppTestCase(unittest.TestCase):
         # including different stategies and checking of
         # results based on what should be in the DB.
 
-        wt_pair = dict(worker_id=test_worker_id, task_id=task_id)
-        rv = self.app.get('/assign_next_question', content_type='application/json', data=json.dumps(wt_pair))
+        wt_pair = dict(worker_id=test_worker_id, task_id=task_id,
+                       requester_id=str(self.test_requester.id))
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          data=json.dumps(wt_pair))
+        self.assertEqual(401, rv.status_code)
+        
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair))
         self.assertEqual(200, rv.status_code)
-        #print rv.data
-        assign1 = json.loads(rv.data)['question_id']
+        assign1 = json.loads(rv.data)['question_name']
 
-        rv = self.app.get('/assign_next_question', content_type='application/json', data=json.dumps(wt_pair))
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair))
         self.assertEqual(200, rv.status_code)
-        #print rv.data
-        assign2 = json.loads(rv.data)['question_id']
+        assign2 = json.loads(rv.data)['question_name']
 
         # CHECK HERE WITH DIFFERENT ASSIGNMENT STRATEGIES
 
-        rv = self.app.get('/assign_next_question?strategy=min_answers', content_type='application/json', data=json.dumps(wt_pair))
+        wt_pair['strategy'] = 'min_answers'
+        #rv = self.app.get('/assign_next_question?strategy=min_answers', content_type='application/json', data=json.dumps(wt_pair))
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair))
+
         self.assertEqual(200, rv.status_code)
         #print rv.data
-        assign3 = json.loads(rv.data)['question_id']
+        assign3 = json.loads(rv.data)['question_name']
 
     def test_populate_db(self):
         # Start with clean DB for sanity
@@ -271,7 +316,6 @@ class AppTestCase(unittest.TestCase):
         # Need their IDs to be able to answer them.
         question1_id = task1_q_ids[question1['question_name']]
         question2_id = task1_q_ids[question2['question_name']]
-
 
         rv = self.app.put('/tasks', content_type='application/json',
                           headers={'Authentication-Token': requester2_token},
@@ -392,18 +436,40 @@ class AppTestCase(unittest.TestCase):
         # Test question assignment algorithms
 
         # Task 1's least answered question is question 2
-        assign1 = dict(worker_id = worker1_id, task_id = task1_id, strategy = 'min_answers')
-        rv = self.app.get('/assign_next_question', content_type='application/json', data=json.dumps(assign1))
+        assign1 = dict(worker_id = worker1_id,
+                       task_id = task1_id,
+                       requester_id = requester1_id,
+                       strategy = 'min_answers')
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   requester1_token}, 
+                          data=json.dumps(assign1))
         self.assertEqual(200, rv.status_code)
-        assign1_id = json.loads(rv.data)['question_id']
-        self.assertEqual(question2_id, assign1_id)
+        assign1_name = json.loads(rv.data)['question_name']
+        self.assertEqual(question2['question_name'], assign1_name)
 
         # Task 2's least answered question is question 4
-        assign2 = dict(worker_id = worker1_id, task_id = task2_id, strategy = 'min_answers')
-        rv = self.app.get('/assign_next_question', content_type='application/json', data=json.dumps(assign2))
+        assign2 = dict(worker_id = worker1_id, task_id = task2_id,
+                       requester_id = requester2_id,
+                       strategy = 'min_answers')
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   requester1_token}, 
+                          data=json.dumps(assign2))
         self.assertEqual(200, rv.status_code)
-        assign2_id = json.loads(rv.data)['question_id']
-        self.assertEqual(question4_id, assign2_id)
+        self.assertEqual("Sorry, your api token is not correct",
+                         json.loads(rv.data))
+        
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   requester2_token}, 
+                          data=json.dumps(assign2))
+        self.assertEqual(200, rv.status_code)
+        assign2_name = json.loads(rv.data)['question_name']
+        self.assertEqual(question4['question_name'], assign2_name)
 
         # Test answer aggregation algorithms
 

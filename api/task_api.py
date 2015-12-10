@@ -6,6 +6,7 @@ from schema.question import Question
 from schema.task import Task
 from schema.requester import Requester
 from flask.json import jsonify
+from util import check_requester_token_match
 import json
 from app import app
 
@@ -14,6 +15,9 @@ task_parser.add_argument('requester_id', type=str, required=True)
 task_parser.add_argument('task_name', type=str, required=True)
 task_parser.add_argument('task_description', type=str, required=True)
 task_parser.add_argument('questions', type=list, location='json', required=False)
+
+tasklistapi_get_parser = reqparse.RequestParser()
+tasklistapi_get_parser.add_argument('requester_id', type=str, required=True)
 
 
 #TODO make this a blueprint
@@ -27,11 +31,18 @@ class TaskListApi(Resource):
     # Must be logged in to 
     decorators = [login_required]
 
+    @auth_token_required
     def get(self):
         """
         Get list of all tasks.
         """
-        tasks = Task.objects
+        args = tasklistapi_get_parser.parse_args()
+        requester_id = args['requester_id']
+        
+        if check_requester_token_match(requester_id):
+            return "Sorry, your api token is not correct"
+
+        tasks = Task.objects(requester = requester_id)
         return json.loads(tasks.to_json())
 
     @auth_token_required
@@ -40,10 +51,11 @@ class TaskListApi(Resource):
         Create a new task.
         """
         args = task_parser.parse_args()
+        
         requester_id = args['requester_id']
-        if not str(current_user.id) == requester_id:
+        if check_requester_token_match(requester_id):
             return "Sorry, your api token is not correct"
-
+        
         task_name = args['task_name']
         task_description = args['task_description']
         questions = args['questions']
