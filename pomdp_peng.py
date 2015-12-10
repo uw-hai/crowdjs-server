@@ -15,18 +15,13 @@ def get_state(state_string):
     s = state_string.split("---")[1:]
     d = float(s[0].replace("point","."))
     v = True if s[1] == 'True' else False
-#   submitted = True if s[2] == 'True' else False
     return (d,v)
-#   return (d,v,submitted)
-
-#def make_state(d,v,submitted):
-#    return "d-v---" + str(d).replace(".","point") + "---" + str(v) + "---" + str(submitted)
 
 def make_state(d,v):
     return "d-v---" + str(d).replace(".","point") + "---" + str(v)
 
-
 class PengPOMDP(object):
+#   def __init__(self, num_diff_bins, avg_worker_skill, create_job_cost, reward_correct, reward_incorrect):
     def __init__(self, num_diff_bins, avg_worker_skill):
         """
         from paper:
@@ -36,13 +31,17 @@ class PengPOMDP(object):
         num_diff_bins = discretize [0,1] into n bins
         i.e. 11 bins = [0, 0.1, ..., 1]
         """
+        answers = [True, False]
         bins = [float(i)/(num_diff_bins-1) for i in range(num_diff_bins)]
-        answers = ['True', 'False']
         #NOTE additional terminal state - don't forget when computing probabilities
-        self.states = [TERMINAL_STATE] + [make_state(d,v) for d,v in itertools.product(bins, answers)]
+        #NOTE ordering: [(True,0.0),...,(True,1.0),(False,0.0),...,(False,1.0),<TERMINAL STATE>]
+        self.states = [make_state(d,v) for v,d in itertools.product(answers, bins)] + [TERMINAL_STATE]
         self.actions = ['create-another-job', 'submit-true', 'submit-false']
         self.observations = ['True', 'False']
         self.avg_worker_skill = avg_worker_skill
+#       self.create_job_cost = create_job_cost
+#       self.reward_correct = reward_correct
+#       self.reward_incorrect = reward_incorrect
 
     @staticmethod
     def CLOSURE_f_start(num_states):
@@ -73,7 +72,6 @@ class PengPOMDP(object):
     @staticmethod
     def CLOSURE_f_observation(gamma):
         def f_observation(s, a, o):
-
             #TODO do we care about obs in terminal state?
             #BUG just return 1/0 for now so the math works
             if is_terminal_state(s):
@@ -93,10 +91,16 @@ class PengPOMDP(object):
                 return 1-P_correct
         return f_observation
 
-
     @staticmethod
     def f_transition(s, a, s1):
-        #TODO cleanup
+        #XXX All cases covered but could make this cle
+        # P(T, *, T) = 1
+        # P(T, *, NT) = 0
+        # P(*, [submit-true,submit-false], T) = 1
+        # P(NT, c, NT) = 1
+        # all else 0
+        #TODO simplify code
+
         if is_terminal_state(s) and is_terminal_state(s1):
             #stay in terminal state
             return 1
@@ -111,5 +115,3 @@ class PengPOMDP(object):
             return 1
         else:
             return 0
-
-

@@ -86,6 +86,7 @@ class POMDPPolicy:
         """
         #raise NotImplementedError # Untested.
         res = self.get_action_rewards(belief)
+        print res
         max_reward = max(res.itervalues())
         best_action = random.choice([a for a in res if res[a] == max_reward])
         return (best_action, max_reward)
