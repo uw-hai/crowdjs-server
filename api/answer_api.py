@@ -50,7 +50,8 @@ class AnswerListApi(Resource):
             answer = answers[0]
         
         answer.complete_time = datetime.datetime.now()
-        answer.value = value                                              
+        answer.value = value
+        answer.status = 'Completed'
 
         answer.save()
         

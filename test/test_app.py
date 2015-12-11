@@ -170,12 +170,13 @@ class AppTestCase(unittest.TestCase):
 
 
         ####################################################################
-        # Test Question Assignment
+        # Test Assignment
         ####################################################################
         wt_pair = dict(worker_id=test_worker_id,
                        worker_source=test_worker_source,
                        task_id=task_id,
                        requester_id=str(self.test_requester.id))
+        
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
                           data=json.dumps(wt_pair))
@@ -221,25 +222,23 @@ class AppTestCase(unittest.TestCase):
             self.assertNotIn('complete_time', answer)
             self.assertNotIn('value', answer)
             
-        # Test adding an answer
+        # Test adding answers
         test_answer = dict(question_name=assign1,
                            worker_id=test_worker_id,
                            worker_source=test_worker_source,
                            value="test answer value")
         rv = self.app.put('/answers', content_type='application/json',
                           data=json.dumps(test_answer))
-        #expected_add_answer_rv = "Answer inserted"
-        expected_add_answer_rv = "test answer value"
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
-        self.assertEqual(get_answer['value'], expected_add_answer_rv)
+        self.assertEqual(get_answer['value'], "test answer value")
 
         #There should still be 3 answers
         rv = self.app.get('/answers', content_type='application/json')
         self.assertEqual(200, rv.status_code)
         answers = json.loads(rv.data)
         self.assertEqual(3, len(answers))
-        
+
         # check that answer value is correct and was added to the question
         # for a single Answer
         rv = self.app.get('/answers')
@@ -265,6 +264,162 @@ class AppTestCase(unittest.TestCase):
 
         self.assertEqual(question_name['name'], assign1)
 
+
+        #Test adding an answer to a question that wasn't assigned.
+        test_answer = dict(question_name=test_question3_name, 
+                           worker_id=test_worker_id,
+                           worker_source=test_worker_source,
+                           value="31415")
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(200, rv.status_code)
+        get_answer = json.loads(rv.data)
+        self.assertEqual(get_answer['value'], "31415")
+
+        #There should now be 4 answers
+        rv = self.app.get('/answers', content_type='application/json')
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(4, len(answers))
+
+        # check that answer value is correct and was added to the question
+        # for a single Answer
+        rv = self.app.get('/answers')
+        self.assertEqual(200, rv.status_code)
+        ret_data = json.loads(rv.data)
+        num_answers_with_no_value = 0
+        num_answers_with_test_value = 0
+        num_answers_with_other_values = 0
+        answer_with_test_value = None
+        for answer in ret_data:
+            if 'value' not in answer:
+                num_answers_with_no_value += 1
+            elif answer['value'] == "31415":
+                num_answers_with_test_value += 1
+                answer_with_test_value = answer
+            else:
+                num_answers_with_other_values += 1
+                
+        self.assertEqual(num_answers_with_no_value, 2)
+        self.assertEqual(num_answers_with_test_value, 1)
+        self.assertEqual(num_answers_with_other_values, 1)
+        
+        rv = self.app.get('/questions/%s' %
+                          answer_with_test_value['question']['$oid'])
+        self.assertEqual(200, rv.status_code)
+        question_name = json.loads(rv.data)
+
+        self.assertEqual(question_name['name'], test_question3_name)
+
+
+        # Test adding another answer for which we are expecting one
+        test_answer = dict(question_name=assign2,
+                           worker_id=test_worker_id,
+                           worker_source=test_worker_source,
+                           value="assign2value")
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(200, rv.status_code)
+        get_answer = json.loads(rv.data)
+        self.assertEqual(get_answer['value'], "assign2value")
+
+        #There should still be 4 answers
+        rv = self.app.get('/answers', content_type='application/json')
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(4, len(answers))
+
+
+        # check that answer value is correct and was added to the question
+        # for a single Answer
+        rv = self.app.get('/answers')
+        self.assertEqual(200, rv.status_code)
+        ret_data = json.loads(rv.data)
+        num_answers_with_no_value = 0
+        num_answers_with_test_value = 0
+        num_answers_with_other_values = 0
+        answer_with_test_value = None
+        for answer in ret_data:
+            if 'value' not in answer:
+                num_answers_with_no_value += 1
+            elif answer['value'] == test_answer['value']:
+                num_answers_with_test_value += 1
+                answer_with_test_value = answer
+            else:
+                num_answers_with_other_values += 1
+
+                
+        self.assertEqual(num_answers_with_no_value, 1)
+        self.assertEqual(num_answers_with_test_value, 1)
+        self.assertEqual(num_answers_with_other_values, 2)
+        
+        rv = self.app.get('/questions/%s' %
+                          answer_with_test_value['question']['$oid'])
+        self.assertEqual(200, rv.status_code)
+        question_name = json.loads(rv.data)
+
+        self.assertEqual(question_name['name'], assign2)
+
+
+        # Test adding two answers -one which we are expecting, and
+        #one which we will not be expecting after adding the first
+        test_answer = dict(question_name=assign3,
+                           worker_id=test_worker_id,
+                           worker_source=test_worker_source,
+                           value="assign3value1")
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(200, rv.status_code)
+        get_answer = json.loads(rv.data)
+        self.assertEqual(get_answer['value'], "assign3value1")
+
+        test_answer = dict(question_name=assign3,
+                           worker_id=test_worker_id,
+                           worker_source=test_worker_source,
+                           value="assign3value2")
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(200, rv.status_code)
+        get_answer = json.loads(rv.data)
+        self.assertEqual(get_answer['value'], "assign3value2")
+        
+        #There should now be 5 answers
+        rv = self.app.get('/answers', content_type='application/json')
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(5, len(answers))
+
+
+        # check that answer values are correct and were added to the
+        # appropriate questions
+        rv = self.app.get('/answers')
+        self.assertEqual(200, rv.status_code)
+        ret_data = json.loads(rv.data)
+        num_answers_with_no_value = 0
+        num_answers_with_test_value = 0
+        num_answers_with_other_values = 0
+        answer_with_test_value = None
+        for answer in ret_data:
+            if 'value' not in answer:
+                num_answers_with_no_value += 1
+            elif answer['value'] == test_answer['value']:
+                num_answers_with_test_value += 1
+                answer_with_test_value = answer
+            else:
+                num_answers_with_other_values += 1
+
+                
+        self.assertEqual(num_answers_with_no_value, 0)
+        self.assertEqual(num_answers_with_test_value, 1)
+        self.assertEqual(num_answers_with_other_values, 4)
+        
+        rv = self.app.get('/questions/%s' %
+                          answer_with_test_value['question']['$oid'])
+        self.assertEqual(200, rv.status_code)
+        question_name = json.loads(rv.data)
+
+        self.assertEqual(question_name['name'], assign3)
+        
         # test /requesters functionality
         rv = self.app.get('/requesters')
         self.assertEqual(200, rv.status_code)
