@@ -6,7 +6,7 @@ from schema.question import Question
 from schema.task import Task
 from schema.requester import Requester
 from flask.json import jsonify
-from util import check_requester_token_match
+from util import requester_token_match
 import json
 from app import app
 
@@ -39,7 +39,7 @@ class TaskListApi(Resource):
         args = tasklistapi_get_parser.parse_args()
         requester_id = args['requester_id']
         
-        if check_requester_token_match(requester_id):
+        if not requester_token_match(requester_id):
             return "Sorry, your api token is not correct"
 
         tasks = Task.objects(requester = requester_id)
@@ -53,7 +53,7 @@ class TaskListApi(Resource):
         args = task_parser.parse_args()
         
         requester_id = args['requester_id']
-        if check_requester_token_match(requester_id):
+        if not requester_token_match(requester_id):
             return "Sorry, your api token is not correct"
         
         task_name = args['task_name']

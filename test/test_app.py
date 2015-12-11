@@ -61,8 +61,6 @@ class AppTestCase(unittest.TestCase):
                                    self.test_requester_api_key},
                           data=json.dumps(test_task))
         self.assertEqual(200, rv.status_code)
-
-        
         task_id = json.loads(rv.data)['task_id']
 
         self.assertEqual(200, rv.status_code)
@@ -169,9 +167,62 @@ class AppTestCase(unittest.TestCase):
 
         test_worker_id = 'MTURK123XYZ'
         test_worker_source = 'mturk'
+
+
+        ####################################################################
+        # Test Question Assignment
+        ####################################################################
+        wt_pair = dict(worker_id=test_worker_id,
+                       worker_source=test_worker_source,
+                       task_id=task_id,
+                       requester_id=str(self.test_requester.id))
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          data=json.dumps(wt_pair))
+        self.assertEqual(401, rv.status_code)
+
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        assign1 = json.loads(rv.data)['question_name']
+
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        assign2 = json.loads(rv.data)['question_name']
+
+
         
+        wt_pair['strategy'] = 'min_answers'
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair))
+
+        self.assertEqual(200, rv.status_code)
+        assign3 = json.loads(rv.data)['question_name']
+
+
+        #Three assignments have been made at this point. That means
+        #there should be 3 answers awaiting completion.
+        rv = self.app.get('/answers', content_type='application/json')
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(3, len(answers))
+        for answer in answers:
+            self.assertEqual(answer['status'], 'Assigned')
+            self.assertNotIn('complete_time', answer)
+            self.assertNotIn('value', answer)
+            
         # Test adding an answer
-        test_answer = dict(question_name=test_question3_name,
+        test_answer = dict(question_name=assign1,
                            worker_id=test_worker_id,
                            worker_source=test_worker_source,
                            value="test answer value")
@@ -183,13 +234,36 @@ class AppTestCase(unittest.TestCase):
         get_answer = json.loads(rv.data)
         self.assertEqual(get_answer['value'], expected_add_answer_rv)
 
-        # check that answer value is correct and was added to the question
-        rv = self.app.get('/answers')
-        ret_data = json.loads(rv.data)[0]
+        #There should still be 3 answers
+        rv = self.app.get('/answers', content_type='application/json')
         self.assertEqual(200, rv.status_code)
-        self.assertEqual(ret_data['value'], test_answer['value'])
-        self.assertEqual(ret_data['question']['$oid'],
-                         test_question3_id)
+        answers = json.loads(rv.data)
+        self.assertEqual(3, len(answers))
+        
+        # check that answer value is correct and was added to the question
+        # for a single Answer
+        rv = self.app.get('/answers')
+        self.assertEqual(200, rv.status_code)
+        ret_data = json.loads(rv.data)
+        num_answers_with_no_value = 0
+        num_answers_with_test_value = 0
+        answer_with_test_value = None
+        for answer in ret_data:
+            if 'value' not in answer:
+                num_answers_with_no_value += 1
+            elif answer['value'] == test_answer['value']:
+                num_answers_with_test_value += 1
+                answer_with_test_value = answer
+                
+        self.assertEqual(num_answers_with_no_value, 2)
+        self.assertEqual(num_answers_with_test_value, 1)
+
+        rv = self.app.get('/questions/%s' %
+                          answer_with_test_value['question']['$oid'])
+        self.assertEqual(200, rv.status_code)
+        question_name = json.loads(rv.data)
+
+        self.assertEqual(question_name['name'], assign1)
 
         # test /requesters functionality
         rv = self.app.get('/requesters')
@@ -236,48 +310,6 @@ class AppTestCase(unittest.TestCase):
         rv = self.app.get('/questions/%s/answers' % test_question3_id)
         #print rv.data
 
-        # TODO more rigorous testing of question assignment,
-        # including different stategies and checking of
-        # results based on what should be in the DB.
-
-        wt_pair = dict(worker_id=test_worker_id,
-                       worker_source=test_worker_source,
-                       task_id=task_id,
-                       requester_id=str(self.test_requester.id))
-        rv = self.app.get('/assign_next_question',
-                          content_type='application/json',
-                          data=json.dumps(wt_pair))
-        self.assertEqual(401, rv.status_code)
-        
-        rv = self.app.get('/assign_next_question',
-                          content_type='application/json',
-                          headers={'Authentication-Token':
-                                   self.test_requester_api_key},
-                          data=json.dumps(wt_pair))
-        self.assertEqual(200, rv.status_code)
-        assign1 = json.loads(rv.data)['question_name']
-
-        rv = self.app.get('/assign_next_question',
-                          content_type='application/json',
-                          headers={'Authentication-Token':
-                                   self.test_requester_api_key},
-                          data=json.dumps(wt_pair))
-        self.assertEqual(200, rv.status_code)
-        assign2 = json.loads(rv.data)['question_name']
-
-        # CHECK HERE WITH DIFFERENT ASSIGNMENT STRATEGIES
-
-        wt_pair['strategy'] = 'min_answers'
-        #rv = self.app.get('/assign_next_question?strategy=min_answers', content_type='application/json', data=json.dumps(wt_pair))
-        rv = self.app.get('/assign_next_question',
-                          content_type='application/json',
-                          headers={'Authentication-Token':
-                                   self.test_requester_api_key},
-                          data=json.dumps(wt_pair))
-
-        self.assertEqual(200, rv.status_code)
-        #print rv.data
-        assign3 = json.loads(rv.data)['question_name']
 
     def test_populate_db(self):
         # Start with clean DB for sanity

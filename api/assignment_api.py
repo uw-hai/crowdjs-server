@@ -7,7 +7,7 @@ import schema.requester
 import schema.answer
 import json
 import random
-from util import check_requester_token_match
+from util import requester_token_match, get_or_insert_worker
 
 
 nextq_parser = reqparse.RequestParser()
@@ -34,22 +34,23 @@ class NextQuestionApi(Resource):
         """
         Assign a question from the given task to the given worker.
         """
-
         args = nextq_parser.parse_args()
+
         strategy = args['strategy']
         task_id = args['task_id']
 
         requester_id = args['requester_id']
         
-        if check_requester_token_match(requester_id):
+        if not requester_token_match(requester_id):
             return "Sorry, your api token is not correct"
 
         task = schema.task.Task.objects.get_or_404(id=task_id)
-        
         worker_id = args['worker_id']
         worker_source = args['worker_source']
-        if worker_id is None:
-            return "missing worker_id"
+
+        worker = get_or_insert_worker(worker_id, worker_source)
+        if worker == None:
+            return "You have not entered a valid worker source. It must be one of: [mturk,] "
 
         if strategy == 'min_answers':
             question = self.min_answers(task_id, worker_id)
@@ -57,11 +58,11 @@ class NextQuestionApi(Resource):
             question = self.random_choice(task_id, worker_id)
         else:
             return "error: INVALID STRATEGY"
-        
-        answer = Answer(question = question,
-                        worker = worker,
-                        status = 'Assigned',
-                        assign_time=datetime.now)
+
+        answer = schema.answer.Answer(question = question,
+                                      worker = worker,
+                                      status = 'Assigned',
+                                      assign_time=datetime.datetime.now)
 
         answer.save()
         

@@ -3,6 +3,7 @@ from flask import url_for
 from schema.answer import Answer
 from schema.question import Question
 from schema.worker import Worker
+from util import get_or_insert_worker
 import datetime
 import json
 
@@ -32,21 +33,23 @@ class AnswerListApi(Resource):
         
         question = Question.objects.get_or_404(name=question_name)
         
-        if worker_source == 'mturk':
-            try:
-                worker = Worker.objects.get(platform_id = worker_id,
-                                            platform_name = 'mturk')
-            except:
-                worker = Worker(platform_id = worker_id,
-                                platform_name = 'mturk')
-                worker.save()
+        worker = get_or_insert_worker(worker_id, worker_source)
+        if worker == None:
+            return "You have not entered a valid worker source. It must be one of: [mturk,] "
+        
+        answers = Answer.objects(question = question,
+                                worker = worker,
+                                status = 'Assigned')
+        
+        if len(answers) == 0:
+            answer = Answer(question = question,
+                            worker = worker,
+                            status = 'Completed',
+                            assign_time = None)
         else:
-            return 'Sorry, you have not provided a valid worker source. The worker source must be one of [mturk,]'
-
-        answer = Answer.objects.first_or_404(question = question,
-                                              worker = worker,
-                                              status = 'Assigned')
-        answer.complete_time = datettime.now()
+            answer = answers[0]
+        
+        answer.complete_time = datetime.datetime.now()
         answer.value = value                                              
 
         answer.save()
