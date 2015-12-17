@@ -110,7 +110,7 @@ api.add_resource(QuestionAnswersApi, '/questions/<question_id>/answers') #UNSECU
 
 # next question
 from api.assignment_api import *
-api.add_resource(NextQuestionApi, '/assign_next_question')
+api.add_resource(NextQuestionApi, '/assign_next_question') 
 
 #TODO not implemented yet
 from api.aggregation_api import *
@@ -118,7 +118,7 @@ api.add_resource(AnswerAggregationApi, '/aggregated_answer') #UNSECURED
 
 from api.answer_api import *
 api.add_resource(AnswerApi, '/answers/<answer_id>') #UNSECURED
-api.add_resource(AnswerListApi, '/answers') #UNSECURED
+api.add_resource(AnswerListApi, '/answers') 
 
 from api.task_api import *
 api.add_resource(TaskApi, '/tasks/<task_id>') #UNSECURED

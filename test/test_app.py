@@ -240,7 +240,45 @@ class AppTestCase(unittest.TestCase):
         
         #Three assignments have been made at this point. That means
         #there should be 3 answers awaiting completion.
+        answer_get_query = dict(requester_id=str(self.test_requester.id),
+                                task_id = task_id)
+        answer_get_query_no_task_id = dict(
+            requester_id=str(self.test_requester.id))
+        answer_get_query_wrong_task_id = dict(
+            requester_id=str(self.test_requester.id),
+            task_id=task_id2[::-1])
+        
         rv = self.app.get('/answers', content_type='application/json')
+        self.assertEqual(401, rv.status_code)
+
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query))
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(3, len(answers))
+        for answer in answers:
+            self.assertEqual(answer['status'], 'Assigned')
+            self.assertNotIn('complete_time', answer)
+            self.assertNotIn('value', answer)
+
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_wrong_task_id))
+        self.assertEqual(200, rv.status_code)
+        print "TASK IDS"
+        print task_id
+        print task_id2
+        answers = json.loads(rv.data)
+        self.assertEqual("Sorry, your api token is not correct",
+                         answers)
+            
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_no_task_id))
         self.assertEqual(200, rv.status_code)
         answers = json.loads(rv.data)
         self.assertEqual(3, len(answers))
@@ -251,24 +289,38 @@ class AppTestCase(unittest.TestCase):
             
         # Test adding answers
         test_answer = dict(question_name=assign1,
+                           requester_id = str(self.test_requester.id),
+                           task_id = task_id,
                            worker_id=test_worker_id,
                            worker_source=test_worker_source,
-                           value="test answer value")
+                           value="test answer value")        
         rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(401, rv.status_code)
+
+        rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
         self.assertEqual(get_answer['value'], "test answer value")
 
         #There should still be 3 answers
-        rv = self.app.get('/answers', content_type='application/json')
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query))
         self.assertEqual(200, rv.status_code)
         answers = json.loads(rv.data)
         self.assertEqual(3, len(answers))
 
         # check that answer value is correct and was added to the question
         # for a single Answer
-        rv = self.app.get('/answers')
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query))
         self.assertEqual(200, rv.status_code)
         ret_data = json.loads(rv.data)
         num_answers_with_no_value = 0
@@ -293,25 +345,43 @@ class AppTestCase(unittest.TestCase):
 
 
         #Test adding an answer to a question that wasn't assigned.
-        test_answer = dict(question_name=test_question3_name, 
+        test_answer = dict(question_name=test_question3_name,
+                           task_id=task_id2,
+                           requester_id=str(self.test_requester.id),
                            worker_id=test_worker_id,
                            worker_source=test_worker_source,
                            value="31415")
         rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
         self.assertEqual(get_answer['value'], "31415")
 
         #There should now be 4 answers
-        rv = self.app.get('/answers', content_type='application/json')
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_no_task_id))
         self.assertEqual(200, rv.status_code)
         answers = json.loads(rv.data)
         self.assertEqual(4, len(answers))
 
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query))
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(3, len(answers))
+
         # check that answer value is correct and was added to the question
         # for a single Answer
-        rv = self.app.get('/answers')
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_no_task_id))
         self.assertEqual(200, rv.status_code)
         ret_data = json.loads(rv.data)
         num_answers_with_no_value = 0
@@ -341,17 +411,24 @@ class AppTestCase(unittest.TestCase):
 
         # Test adding another answer for which we are expecting one
         test_answer = dict(question_name=assign2,
+                           requester_id = str(self.test_requester.id),
+                           task_id = task_id,
                            worker_id=test_worker_id,
                            worker_source=test_worker_source,
                            value="assign2value")
         rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
         self.assertEqual(get_answer['value'], "assign2value")
 
         #There should still be 4 answers
-        rv = self.app.get('/answers', content_type='application/json')
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_no_task_id))
         self.assertEqual(200, rv.status_code)
         answers = json.loads(rv.data)
         self.assertEqual(4, len(answers))
@@ -359,7 +436,10 @@ class AppTestCase(unittest.TestCase):
 
         # check that answer value is correct and was added to the question
         # for a single Answer
-        rv = self.app.get('/answers')
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_no_task_id))
         self.assertEqual(200, rv.status_code)
         ret_data = json.loads(rv.data)
         num_answers_with_no_value = 0
@@ -391,27 +471,38 @@ class AppTestCase(unittest.TestCase):
         # Test adding two answers -one which we are expecting, and
         #one which we will not be expecting after adding the first
         test_answer = dict(question_name=assign3,
+                           requester_id = str(self.test_requester.id),
+                           task_id = task_id,
                            worker_id=test_worker_id,
                            worker_source=test_worker_source,
                            value="assign3value1")
         rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
         self.assertEqual(get_answer['value'], "assign3value1")
 
         test_answer = dict(question_name=assign3,
+                           requester_id = str(self.test_requester.id),
+                           task_id = task_id,
                            worker_id=test_worker_id,
                            worker_source=test_worker_source,
                            value="assign3value2")
         rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
         self.assertEqual(get_answer['value'], "assign3value2")
         
         #There should now be 5 answers
-        rv = self.app.get('/answers', content_type='application/json')
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_no_task_id))
         self.assertEqual(200, rv.status_code)
         answers = json.loads(rv.data)
         self.assertEqual(5, len(answers))
@@ -419,7 +510,10 @@ class AppTestCase(unittest.TestCase):
 
         # check that answer values are correct and were added to the
         # appropriate questions
-        rv = self.app.get('/answers')
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_no_task_id))
         self.assertEqual(200, rv.status_code)
         ret_data = json.loads(rv.data)
         num_answers_with_no_value = 0
@@ -448,7 +542,10 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(question_name['name'], assign3)
 
         #Test that all answers have a completed time greater than assigned time
-        rv = self.app.get('/answers', content_type='application/json')
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_no_task_id))
         self.assertEqual(200, rv.status_code)
         answers = json.loads(rv.data)
         answers_with_assign_times = 0
@@ -460,7 +557,7 @@ class AppTestCase(unittest.TestCase):
 
         self.assertEqual(answers_with_assign_times, 3)
 
-        #Test that we can make 1 more assignments.
+        #Test that we can make 1 more assignment.
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
                           headers={'Authentication-Token':
@@ -631,77 +728,124 @@ class AppTestCase(unittest.TestCase):
         answer1 = dict(value = "dog", question_name = question1_name,
                        worker_id = worker1['platform_id'],
                        worker_source=worker_platform,
-                       is_alive = True)
-        answer2 = dict(value = "dog", question_name = question2_name,
+                       is_alive = True,
+                       requester_id = requester1_id,
+                       task_id = task1_id)
+        answer2 = dict(value = "sheep", question_name = question2_name,
                        worker_id = worker1['platform_id'],
                        worker_source=worker_platform,
-                       is_alive = True)
+                       is_alive = True,
+                       requester_id = requester1_id,
+                       task_id = task1_id)
         answer3 = dict(value = "cat", question_name = question1_name,
                        worker_id = worker2['platform_id'],
                        worker_source=worker_platform,
-                       is_alive = True)
+                       is_alive = True,
+                       requester_id = requester1_id,
+                       task_id = task1_id)
         answer4 = dict(value = "husky", question_name = question5_name,
                        worker_id = worker2['platform_id'],
                        worker_source=worker_platform,
-                       is_alive = True)
+                       is_alive = True,
+                       requester_id = requester2_id,
+                       task_id = task2_id)
         answer5 = dict(value = "cat", question_name = question1_name,
                        worker_id = worker3['platform_id'],
                        worker_source=worker_platform,
-                       is_alive = True)
+                       is_alive = True,
+                       requester_id = requester1_id,
+                       task_id = task1_id)
         answer6 = dict(value = "apple", question_name = question3_name,
                        worker_id = worker3['platform_id'],
                        worker_source=worker_platform,
-                       is_alive = True)
+                       is_alive = True,
+                       requester_id = requester2_id,
+                       task_id = task2_id)
         answer7 = dict(value = "biscuit", question_name = question4_name,
                        worker_id = worker3['platform_id'],
                        worker_source=worker_platform,
-                       is_alive = True)
+                       is_alive = True,
+                       requester_id = requester2_id,
+                       task_id = task2_id)
         answer8 = dict(value = "husky dog", question_name = question5_name,
                        worker_id = worker3['platform_id'],
                        worker_source=worker_platform,
-                       is_alive = True)
+                       is_alive = True,
+                       requester_id = requester2_id,
+                       task_id = task2_id)
 
         # XXX added another answer to question 3 by worker 1
         answer9 = dict(value = "good answer", question_name = question3_name,
                        worker_id = worker1['platform_id'],
                        worker_source=worker_platform,
-                       is_alive = True)
+                       is_alive = True,
+                       requester_id = requester2_id,
+                       task_id = task2_id)
 
-        rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer1))
+        rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token': requester1_token},
+                          data=json.dumps(answer1))
         self.assertEqual(200, rv.status_code)
-        #answer1_id = json.loads(rv.data)['answer_id']
+        answer1_value = json.loads(rv.data)['value']
+        self.assertEqual("dog", answer1_value)
+        
+        rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token': requester1_token},
+                          data=json.dumps(answer2))
+        self.assertEqual(200, rv.status_code)
+        answer2_value = json.loads(rv.data)['value']
+        self.assertEqual("sheep", answer2_value)
+        
+        rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token': requester1_token},
+                          data=json.dumps(answer3))        
+        self.assertEqual(200, rv.status_code)
+        answer3_value = json.loads(rv.data)['value']        
+        self.assertEqual("cat", answer3_value)
+        
+        rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token': requester2_token},
+                          data=json.dumps(answer4))
+        self.assertEqual(200, rv.status_code)
+        answer4_value = json.loads(rv.data)['value']
+        self.assertEqual("husky", answer4_value)
+        
+        rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token': requester1_token},
+                          data=json.dumps(answer5))
+        self.assertEqual(200, rv.status_code)
+        answer5_value = json.loads(rv.data)['value']
+        self.assertEqual("cat", answer5_value)
+        
+        rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token': requester2_token},
+                          data=json.dumps(answer6))
+        self.assertEqual(200, rv.status_code)
+        answer6_value = json.loads(rv.data)['value']
+        self.assertEqual("apple", answer6_value)
+        
+        rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token': requester2_token},
+                          data=json.dumps(answer7))
+        self.assertEqual(200, rv.status_code)
+        answer7_value = json.loads(rv.data)['value']
+        self.assertEqual("biscuit", answer7_value)
+        
+        rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token': requester2_token},
+                          data=json.dumps(answer8))
+        self.assertEqual(200, rv.status_code)
+        answer8_value = json.loads(rv.data)['value']
+        self.assertEqual("husky dog", answer8_value)
 
-        rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer2))
-        self.assertEqual(200, rv.status_code)
-        #answer2_id = json.loads(rv.data)['answer_id']
 
-        rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer3))
+        rv = self.app.put('/answers', content_type='application/json',
+                          headers={'Authentication-Token': requester2_token},
+                          data=json.dumps(answer9))
         self.assertEqual(200, rv.status_code)
-        #answer3_id = json.loads(rv.data)['answer_id']
+        answer9_value = json.loads(rv.data)['value']
+        self.assertEqual("good answer", answer9_value)
 
-        rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer4))
-        self.assertEqual(200, rv.status_code)
-        #answer4_id = json.loads(rv.data)['answer_id']
-
-        rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer5))
-        self.assertEqual(200, rv.status_code)
-        #answer5_id = json.loads(rv.data)['answer_id']
-
-        rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer6))
-        self.assertEqual(200, rv.status_code)
-        #answer6_id = json.loads(rv.data)['answer_id']
-
-        rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer7))
-        self.assertEqual(200, rv.status_code)
-        #answer7_id = json.loads(rv.data)['answer_id']
-
-        rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer8))
-        self.assertEqual(200, rv.status_code)
-        #answer8_id = json.loads(rv.data)['answer_id']
-
-        rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer9))
-        self.assertEqual(200, rv.status_code)
-        #answer9_id = json.loads(rv.data)['answer_id']
 
         # Done adding to DB
         # Should have:

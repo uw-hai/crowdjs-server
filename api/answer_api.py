@@ -1,40 +1,81 @@
 from flask.ext.restful import reqparse, abort, Api, Resource
+from flask.ext.security import login_required, current_user, auth_token_required
 from flask import url_for
 from schema.answer import Answer
 from schema.question import Question
 from schema.worker import Worker
-from util import get_or_insert_worker
+from schema.requester import Requester
+from schema.task import Task
+from util import get_or_insert_worker, requester_token_match_and_task_match, requester_token_match
 import datetime
 import json
 
 answer_parser = reqparse.RequestParser()
+answer_parser.add_argument('requester_id', type=str, required=True)
+answer_parser.add_argument('task_id', type=str, required=True)
 answer_parser.add_argument('question_name', type=str, required=True)
 answer_parser.add_argument('worker_id', type=str, required=True)
 answer_parser.add_argument('worker_source', type=str, required=True)
 answer_parser.add_argument('value', type=str, required=True)
 answer_parser.add_argument('is_alive', type=bool, required=False,
                            default=False)
-    
+
+answer_get_parser = reqparse.RequestParser()
+answer_get_parser.add_argument('requester_id', type=str, required=True)
+answer_get_parser.add_argument('task_id', type=str, required=False)
+
 class AnswerListApi(Resource):
+
+    @auth_token_required
     def get(self):
         """
         Get list of all answers.
         """
-        answers = Answer.objects
+        args = answer_get_parser.parse_args()
+        requester_id = args['requester_id']
+        task_id = args['task_id']
+        if task_id == None:
+            if not requester_token_match(requester_id):
+                return "Sorry, your api token is not correct"
+            requester = Requester.objects.get_or_404(id=requester_id)
+            answers = Answer.objects(requester = requester)
+        else:
+            if not requester_token_match_and_task_match(requester_id, task_id):
+                return "Sorry, your api token is not correct"
+
+            requester = Requester.objects.get_or_404(id=requester_id)
+            task = Task.objects.get_or_404(id=task_id)
+            answers = Answer.objects(requester = requester, task = task)
+            
         return json.loads(answers.to_json())
+
+    @auth_token_required
     def put(self):
         """
         Create a new answer.
         """
         args = answer_parser.parse_args()
+
+        requester_id = args['requester_id']
+        task_id = args['task_id']
         
+        if not requester_token_match_and_task_match(requester_id, task_id):
+            return "Sorry, your api token is not correct"
+
+
         question_name = args['question_name']
         worker_id = args['worker_id']
         worker_source = args['worker_source']
         value = args['value']
         is_alive = args['is_alive']
-        
+
+        requester = Requester.objects.get_or_404(id = requester_id)
+        task = Task.objects.get_or_404(id = task_id)
         question = Question.objects.get_or_404(name=question_name)
+
+        if not str(question.task.id) == task_id:
+            return "Sorry, your question and task are inconsistent"
+            
         
         worker = get_or_insert_worker(worker_id, worker_source)
         if worker == None:
@@ -46,6 +87,8 @@ class AnswerListApi(Resource):
         
         if len(answers) == 0:
             answer = Answer(question = question,
+                            task = task,
+                            requester = requester,
                             worker = worker,
                             assign_time = None,
                             is_alive = is_alive)
