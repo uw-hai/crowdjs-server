@@ -124,7 +124,8 @@ from api.task_api import *
 api.add_resource(TaskApi, '/tasks/<task_id>') #UNSECURED
 api.add_resource(TaskListApi, '/tasks') 
 api.add_resource(TaskQuestionsApi, '/tasks/<task_id>/questions') #UNSECURED
-
+api.add_resource(TaskSetBudget, '/tasks/set_budget')
+    
 from api.worker_api import *
 api.add_resource(WorkerListApi, '/workers') #UNSECURED
 api.add_resource(WorkerApi, '/workers/<worker_id>') #UNSECURED

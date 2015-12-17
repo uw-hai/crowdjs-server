@@ -12,7 +12,9 @@ answer_parser.add_argument('question_name', type=str, required=True)
 answer_parser.add_argument('worker_id', type=str, required=True)
 answer_parser.add_argument('worker_source', type=str, required=True)
 answer_parser.add_argument('value', type=str, required=True)
-
+answer_parser.add_argument('is_alive', type=bool, required=False,
+                           default=False)
+    
 class AnswerListApi(Resource):
     def get(self):
         """
@@ -30,6 +32,7 @@ class AnswerListApi(Resource):
         worker_id = args['worker_id']
         worker_source = args['worker_source']
         value = args['value']
+        is_alive = args['is_alive']
         
         question = Question.objects.get_or_404(name=question_name)
         
@@ -44,8 +47,8 @@ class AnswerListApi(Resource):
         if len(answers) == 0:
             answer = Answer(question = question,
                             worker = worker,
-                            status = 'Completed',
-                            assign_time = None)
+                            assign_time = None,
+                            is_alive = is_alive)
         else:
             answer = answers[0]
         

@@ -15,9 +15,17 @@ task_parser.add_argument('requester_id', type=str, required=True)
 task_parser.add_argument('task_name', type=str, required=True)
 task_parser.add_argument('task_description', type=str, required=True)
 task_parser.add_argument('questions', type=list, location='json', required=False)
+task_parser.add_argument('answers_per_question', type=int, required=False,
+                         default = 1)
 
 tasklistapi_get_parser = reqparse.RequestParser()
 tasklistapi_get_parser.add_argument('requester_id', type=str, required=True)
+
+set_budget_parser = reqparse.RequestParser()
+set_budget_parser.add_argument('requester_id', type=str, required=True)
+set_budget_parser.add_argument('task_id', type=str, required=True)
+set_budget_parser.add_argument('answers_per_question', type=int, required=True)
+
 
 
 #TODO make this a blueprint
@@ -59,6 +67,8 @@ class TaskListApi(Resource):
         task_name = args['task_name']
         task_description = args['task_description']
         questions = args['questions']
+        answers_per_question = args['answers_per_question']
+        
         if questions is None:
             questions = []
 
@@ -86,7 +96,9 @@ class TaskListApi(Resource):
                                         data = question_data,
                                         valid_answers = valid_answers,
                                         task = taskDocument,
-                                        requester = requester)
+                                        requester = requester,
+                                        answers_per_question =
+                                        answers_per_question)
 
             questionDocuments.append(questionDocument)
 
@@ -119,3 +131,26 @@ class TaskQuestionsApi(Resource):
         """
         questions = Question.objects(task=task_id)
         return json.loads(questions.to_json())
+
+
+class TaskSetBudget(Resource):
+
+    @auth_token_required
+    def post(self):
+        args = set_budget_parser.parse_args()
+                
+        requester_id = args['requester_id']
+        if not requester_token_match(requester_id):
+            return "Sorry, your api token is not correct"
+
+        task_id = args['task_id']
+        answers_per_question = args['answers_per_question']
+
+        questions = Question.objects(task=task_id)
+
+        for question in questions:
+            question.answers_per_question = answers_per_question
+            question.save()
+            
+        return "Task %s now allows %d answers per question" % (
+            task_id, answers_per_question)

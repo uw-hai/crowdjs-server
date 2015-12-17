@@ -10,3 +10,5 @@ class Question(db.Document):
     requester = db.ReferenceField('Requester')
     # strategy -> answer mapping
     inference_results = db.DictField()
+
+    answers_per_question = db.IntField()

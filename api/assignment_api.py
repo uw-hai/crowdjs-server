@@ -7,7 +7,7 @@ import schema.requester
 import schema.answer
 import json
 import random
-from util import requester_token_match, get_or_insert_worker
+from util import requester_token_match, get_or_insert_worker, get_alive_answers
 
 
 nextq_parser = reqparse.RequestParser()
@@ -19,6 +19,8 @@ nextq_parser.add_argument('task_id', type=str, required=True)
 nextq_parser.add_argument('requester_id', type=str, required=True)
 nextq_parser.add_argument('strategy', type=str, required=False,
                           default='random')
+#nextq_parser.add_argument('answers_per_question', type=int, required=False,
+#                          default = 1)
 
 class NextQuestionApi(Resource):
     """
@@ -52,33 +54,50 @@ class NextQuestionApi(Resource):
         if worker == None:
             return "You have not entered a valid worker source. It must be one of: [mturk,] "
 
-        if strategy == 'min_answers':
+        if strategy == 'min_answers':   
             question = self.min_answers(task_id, worker_id)
         elif strategy == 'random':
             question = self.random_choice(task_id, worker_id)
         else:
             return "error: INVALID STRATEGY"
 
+        if question == None:
+            return None
+        
         answer = schema.answer.Answer(question = question,
                                       worker = worker,
                                       status = 'Assigned',
-                                      assign_time=datetime.datetime.now)
+                                      assign_time=datetime.datetime.now,
+                                      is_alive = True)
 
         answer.save()
         
         return {'question_name' : str(question.name)}
 
+    ####
+    # NOT FULLY TESTED
+    ####
     def random_choice(self, task_id, worker_id):
         task = schema.task.Task.objects.get_or_404(id=task_id)
         questions = schema.question.Question.objects(task=task)
         qlist = list(questions)
-        return random.choice(qlist)
+
+        filtered_qlist = filter(
+            lambda q:len(get_alive_answers(q)) < q.answers_per_question,
+            qList)
+
+        print "LISTS"
+        print qlist
+        print filtered_qlist
+        if len(filtered_qlist) == 0:
+            return None
+        question = random.choice(filtered_qlist)
+        return question
 
     def min_answers(self, task_id, worker_id):
         """
         Assumes that task and worker IDs have been checked.
         """
-        #XXX First pass: assign question with the least number of answers
 
         task = schema.task.Task.objects.get_or_404(id=task_id)
 
@@ -93,8 +112,10 @@ class NextQuestionApi(Resource):
         min_answers = float("inf") # +infinity
         chosen_question = None
         for question in questions:
-            answers = schema.answer.Answer.objects(question=question)
-            print question.id, len(answers)
+
+            answers = get_alive_answers(question)
+            if len(answers) >= question.answers_per_question:
+                continue
             if len(answers) < min_answers:
                 chosen_question = question
                 min_answers = len(answers)

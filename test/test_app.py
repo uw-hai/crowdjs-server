@@ -175,7 +175,8 @@ class AppTestCase(unittest.TestCase):
         wt_pair = dict(worker_id=test_worker_id,
                        worker_source=test_worker_source,
                        task_id=task_id,
-                       requester_id=str(self.test_requester.id))
+                       requester_id=str(self.test_requester.id),
+                       strategy='min_answers')
         
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
@@ -199,8 +200,8 @@ class AppTestCase(unittest.TestCase):
         assign2 = json.loads(rv.data)['question_name']
 
 
-        
-        wt_pair['strategy'] = 'min_answers'
+        #try assigning again, but shouldn't work because of
+        #exceeded budget
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
                           headers={'Authentication-Token':
@@ -208,9 +209,35 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(wt_pair))
 
         self.assertEqual(200, rv.status_code)
+        self.assertEqual(None, json.loads(rv.data))
+
+        
+        set_budget_data = dict(task_id=task_id,
+                               requester_id=str(self.test_requester.id),
+                               answers_per_question=2)
+        
+        rv = self.app.post('/tasks/set_budget',
+                           content_type='application/json',
+                           data=json.dumps(set_budget_data))
+        self.assertEqual(401, rv.status_code)
+
+        rv = self.app.post('/tasks/set_budget',
+                           content_type='application/json',
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key},
+                           data=json.dumps(set_budget_data))
+        self.assertEqual(200, rv.status_code)
+
+        
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
         assign3 = json.loads(rv.data)['question_name']
 
-
+        
         #Three assignments have been made at this point. That means
         #there should be 3 answers awaiting completion.
         rv = self.app.get('/answers', content_type='application/json')
@@ -419,7 +446,38 @@ class AppTestCase(unittest.TestCase):
         question_name = json.loads(rv.data)
 
         self.assertEqual(question_name['name'], assign3)
-        
+
+        #Test that all answers have a completed time greater than assigned time
+        rv = self.app.get('/answers', content_type='application/json')
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        answers_with_assign_times = 0
+        for answer in answers:
+            self.assertIn('complete_time', answer)
+            if 'assign_time' in answer:
+                answers_with_assign_times += 1
+                self.assertLess(answer['assign_time'], answer['complete_time'])
+
+        self.assertEqual(answers_with_assign_times, 3)
+
+        #Test that we can make 1 more assignments.
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        self.assertNotEqual(None, json.loads(rv.data))
+
+        #and the next assignment will not work
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        self.assertEqual(None, json.loads(rv.data))
+
         # test /requesters functionality
         rv = self.app.get('/requesters')
         self.assertEqual(200, rv.status_code)
@@ -572,35 +630,42 @@ class AppTestCase(unittest.TestCase):
 
         answer1 = dict(value = "dog", question_name = question1_name,
                        worker_id = worker1['platform_id'],
-                       worker_source=worker_platform)
+                       worker_source=worker_platform,
+                       is_alive = True)
         answer2 = dict(value = "dog", question_name = question2_name,
                        worker_id = worker1['platform_id'],
-                       worker_source=worker_platform)
-
+                       worker_source=worker_platform,
+                       is_alive = True)
         answer3 = dict(value = "cat", question_name = question1_name,
                        worker_id = worker2['platform_id'],
-                       worker_source=worker_platform)
+                       worker_source=worker_platform,
+                       is_alive = True)
         answer4 = dict(value = "husky", question_name = question5_name,
                        worker_id = worker2['platform_id'],
-                       worker_source=worker_platform)
-
+                       worker_source=worker_platform,
+                       is_alive = True)
         answer5 = dict(value = "cat", question_name = question1_name,
                        worker_id = worker3['platform_id'],
-                       worker_source=worker_platform)
+                       worker_source=worker_platform,
+                       is_alive = True)
         answer6 = dict(value = "apple", question_name = question3_name,
                        worker_id = worker3['platform_id'],
-                       worker_source=worker_platform)
+                       worker_source=worker_platform,
+                       is_alive = True)
         answer7 = dict(value = "biscuit", question_name = question4_name,
                        worker_id = worker3['platform_id'],
-                       worker_source=worker_platform)
+                       worker_source=worker_platform,
+                       is_alive = True)
         answer8 = dict(value = "husky dog", question_name = question5_name,
                        worker_id = worker3['platform_id'],
-                       worker_source=worker_platform)
+                       worker_source=worker_platform,
+                       is_alive = True)
 
         # XXX added another answer to question 3 by worker 1
         answer9 = dict(value = "good answer", question_name = question3_name,
                        worker_id = worker1['platform_id'],
-                       worker_source=worker_platform)
+                       worker_source=worker_platform,
+                       is_alive = True)
 
         rv = self.app.put('/answers', content_type='application/json', data=json.dumps(answer1))
         self.assertEqual(200, rv.status_code)
@@ -654,7 +719,27 @@ class AppTestCase(unittest.TestCase):
         # TODO check integrity of data (boring)
 
         # Test question assignment algorithms
+        # First set the budget high enough
+        set_budget_data = dict(task_id=task1_id,
+                               requester_id=requester1_id,
+                               answers_per_question=10)
+        rv = self.app.post('/tasks/set_budget',
+                           content_type='application/json',
+                           headers={'Authentication-Token':
+                                    requester1_token},
+                           data=json.dumps(set_budget_data))
+        self.assertEqual(200, rv.status_code)
+        set_budget_data = dict(task_id=task2_id,
+                               requester_id=requester2_id,
+                               answers_per_question=10)
+        rv = self.app.post('/tasks/set_budget',
+                           content_type='application/json',
+                           headers={'Authentication-Token':
+                                    requester2_token},
+                           data=json.dumps(set_budget_data))
+        self.assertEqual(200, rv.status_code)
 
+        
         # Task 1's least answered question is question 2
         assign1 = dict(worker_id = worker1['platform_id'],
                        worker_source = worker_platform,
