@@ -7,7 +7,7 @@ import schema.requester
 import schema.answer
 import json
 import random
-from util import requester_token_match, requester_token_match_and_task_match, get_or_insert_worker, get_alive_answers
+from util import requester_token_match, requester_token_match_and_task_match, get_or_insert_worker, get_alive_answers, requester_task_match
 
 
 nextq_parser = reqparse.RequestParser()
@@ -28,7 +28,6 @@ class NextQuestionApi(Resource):
 
     decorators = [login_required]
 
-    @auth_token_required
     def get(self):
 
         """
@@ -41,8 +40,8 @@ class NextQuestionApi(Resource):
 
         requester_id = args['requester_id']
         
-        if not requester_token_match_and_task_match(requester_id, task_id):
-            return "Sorry, your api token is not correct"
+        if not requester_task_match(requester_id, task_id):
+            return "Sorry, your requester_id and task_id do not match"
 
         task = schema.task.Task.objects.get_or_404(id=task_id)
         requester = schema.requester.Requester.objects.get_or_404(

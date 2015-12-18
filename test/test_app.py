@@ -181,13 +181,6 @@ class AppTestCase(unittest.TestCase):
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
                           data=json.dumps(wt_pair))
-        self.assertEqual(401, rv.status_code)
-
-        rv = self.app.get('/assign_next_question',
-                          content_type='application/json',
-                          headers={'Authentication-Token':
-                                   self.test_requester_api_key},
-                          data=json.dumps(wt_pair))
         self.assertEqual(200, rv.status_code)
         assign1 = json.loads(rv.data)['question_name']
 
@@ -294,13 +287,8 @@ class AppTestCase(unittest.TestCase):
                            worker_id=test_worker_id,
                            worker_source=test_worker_source,
                            value="test answer value")        
-        rv = self.app.put('/answers', content_type='application/json',
-                          data=json.dumps(test_answer))
-        self.assertEqual(401, rv.status_code)
 
         rv = self.app.put('/answers', content_type='application/json',
-                          headers={'Authentication-Token':
-                                   self.test_requester_api_key},
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
@@ -935,14 +923,6 @@ class AppTestCase(unittest.TestCase):
                        task_id = task2_id,
                        requester_id = requester2_id,
                        strategy = 'min_answers')
-        rv = self.app.get('/assign_next_question',
-                          content_type='application/json',
-                          headers={'Authentication-Token':
-                                   requester1_token}, 
-                          data=json.dumps(assign2))
-        self.assertEqual(200, rv.status_code)
-        self.assertEqual("Sorry, your api token is not correct",
-                         json.loads(rv.data))
         
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',

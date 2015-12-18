@@ -6,7 +6,7 @@ from schema.question import Question
 from schema.worker import Worker
 from schema.requester import Requester
 from schema.task import Task
-from util import get_or_insert_worker, requester_token_match_and_task_match, requester_token_match
+from util import get_or_insert_worker, requester_token_match_and_task_match, requester_token_match, requester_task_match
 import datetime
 import json
 
@@ -49,7 +49,6 @@ class AnswerListApi(Resource):
             
         return json.loads(answers.to_json())
 
-    @auth_token_required
     def put(self):
         """
         Create a new answer.
@@ -59,8 +58,8 @@ class AnswerListApi(Resource):
         requester_id = args['requester_id']
         task_id = args['task_id']
         
-        if not requester_token_match_and_task_match(requester_id, task_id):
-            return "Sorry, your api token is not correct"
+        if not requester_task_match(requester_id, task_id):
+            return "Sorry, your requester_id and task_id do not match"
 
 
         question_name = args['question_name']

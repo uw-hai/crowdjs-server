@@ -13,6 +13,14 @@ def requester_token_match_and_task_match(requester_id, task_id):
         return False
     return (str(current_user.id) == requester_id and
             str(task.requester.id) == requester_id)
+
+def requester_task_match(requester_id, task_id):
+    try:
+        task = Task.objects.get(id = task_id)
+    except:
+        return False
+    return str(task.requester.id) == requester_id
+
     
 def get_or_insert_worker(worker_id, worker_source):
     if worker_source == 'mturk':
