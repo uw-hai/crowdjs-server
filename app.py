@@ -1,5 +1,6 @@
 import os, sys, traceback
 from flask import Flask
+from flask.ext.cors import CORS
 from flask.ext.mongoengine import MongoEngine
 from flask.ext.restful import Api
 from flask.ext.security import Security, MongoEngineUserDatastore, login_required, login_user, current_user
@@ -13,6 +14,8 @@ app.config.from_object(os.environ['APP_SETTINGS'])
 
 db = MongoEngine(app)
 api = Api(app)
+
+cors = CORS(app)
 
 import schema.requester
 import schema.question
@@ -125,7 +128,9 @@ api.add_resource(TaskApi, '/tasks/<task_id>') #UNSECURED
 api.add_resource(TaskListApi, '/tasks') 
 api.add_resource(TaskQuestionsApi, '/tasks/<task_id>/questions') #UNSECURED
 api.add_resource(TaskSetBudget, '/tasks/set_budget')
-    
+api.add_resource(TaskDelete, '/tasks/delete')
+
+
 from api.worker_api import *
 api.add_resource(WorkerListApi, '/workers') #UNSECURED
 api.add_resource(WorkerApi, '/workers/<worker_id>') #UNSECURED

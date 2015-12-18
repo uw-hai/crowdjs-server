@@ -2,11 +2,12 @@ import sys, traceback
 from flask import request
 from flask.ext.restful import reqparse, abort, Api, Resource
 from flask.ext.security import login_required, current_user, auth_token_required
+from schema.answer import Answer
 from schema.question import Question
 from schema.task import Task
 from schema.requester import Requester
 from flask.json import jsonify
-from util import requester_token_match
+from util import requester_token_match, requester_token_match_and_task_match
 import json
 from app import app
 
@@ -25,6 +26,11 @@ set_budget_parser = reqparse.RequestParser()
 set_budget_parser.add_argument('requester_id', type=str, required=True)
 set_budget_parser.add_argument('task_id', type=str, required=True)
 set_budget_parser.add_argument('answers_per_question', type=int, required=True)
+
+
+delete_task_parser = reqparse.RequestParser()
+delete_task_parser.add_argument('requester_id', type=str, required=True)
+delete_task_parser.add_argument('task_id', type=str, required=True)
 
 
 
@@ -140,10 +146,11 @@ class TaskSetBudget(Resource):
         args = set_budget_parser.parse_args()
                 
         requester_id = args['requester_id']
-        if not requester_token_match(requester_id):
+        task_id = args['task_id']
+
+        if not requester_token_match_and_task_match(requester_id, task_id):
             return "Sorry, your api token is not correct"
 
-        task_id = args['task_id']
         answers_per_question = args['answers_per_question']
 
         questions = Question.objects(task=task_id)
@@ -154,3 +161,22 @@ class TaskSetBudget(Resource):
             
         return "Task %s now allows %d answers per question" % (
             task_id, answers_per_question)
+
+
+class TaskDelete(Resource):
+    @auth_token_required
+    def post(self):
+
+        args = delete_task_parser.parse_args()
+
+        requester_id = args['requester_id']
+        task_id = args['task_id']
+
+        if not requester_token_match_and_task_match(requester_id, task_id):
+            return "Sorry, your api token is not correct"
+ 
+        Answer.objects(task = task_id).delete()
+        Question.objects(task = task_id).delete()
+        Task.objects.get(id = task_id).delete()
+
+        return "Task %s deleted!" % task_id

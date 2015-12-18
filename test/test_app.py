@@ -605,6 +605,36 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(2, len(ret_data))
 
 
+        ##########
+        # TEST DELETING TASKS
+        ##########
+        self.assertEqual(2, len(schema.task.Task.objects()))
+        self.assertEqual(3, len(schema.question.Question.objects()))
+        self.assertEqual(6, len(schema.answer.Answer.objects()))
+
+        del_request = dict(requester_id=str(self.test_requester.id),
+                           task_id = task_id)
+        rv = self.app.post('/tasks/delete',
+                           content_type='application/json',
+                           data=json.dumps(del_request))
+        self.assertEqual(401, rv.status_code)
+
+        rv = self.app.post('/tasks/delete',
+                           content_type='application/json',
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key},
+                           data=json.dumps(del_request))
+        self.assertEqual(200, rv.status_code)
+
+        self.assertEqual(0, len(schema.task.Task.objects(id=task_id)))
+        self.assertEqual(0, len(schema.question.Question.objects(id=task_id)))
+        self.assertEqual(0, len(schema.answer.Answer.objects(id=task_id)))
+
+        self.assertEqual(1, len(schema.task.Task.objects()))
+        self.assertEqual(1, len(schema.question.Question.objects()))
+        self.assertEqual(1, len(schema.answer.Answer.objects()))
+
+
         #rv = self.app.get('/workers')
         #print rv.data
 

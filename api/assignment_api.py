@@ -19,8 +19,6 @@ nextq_parser.add_argument('task_id', type=str, required=True)
 nextq_parser.add_argument('requester_id', type=str, required=True)
 nextq_parser.add_argument('strategy', type=str, required=False,
                           default='random')
-#nextq_parser.add_argument('answers_per_question', type=int, required=False,
-#                          default = 1)
 
 class NextQuestionApi(Resource):
     """
