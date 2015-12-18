@@ -19,6 +19,9 @@ nextq_parser.add_argument('task_id', type=str, required=True)
 nextq_parser.add_argument('requester_id', type=str, required=True)
 nextq_parser.add_argument('strategy', type=str, required=False,
                           default='random')
+nextq_parser.add_argument('preview', type=bool, required=False,
+                          default=False)
+
 
 class NextQuestionApi(Resource):
     """
@@ -36,6 +39,7 @@ class NextQuestionApi(Resource):
         args = nextq_parser.parse_args()
 
         strategy = args['strategy']
+        preview = args['preview']
         task_id = args['task_id']
 
         requester_id = args['requester_id']
@@ -62,16 +66,17 @@ class NextQuestionApi(Resource):
 
         if question == None:
             return None
-        
-        answer = schema.answer.Answer(question = question,
-                                      task = task,
-                                      requester=requester,
-                                      worker = worker,
-                                      status = 'Assigned',
-                                      assign_time=datetime.datetime.now,
-                                      is_alive = True)
 
-        answer.save()
+        if not preview:
+            answer = schema.answer.Answer(question = question,
+                                          task = task,
+                                      requester=requester,
+                                          worker = worker,
+                                          status = 'Assigned',
+                                          assign_time=datetime.datetime.now,
+                                          is_alive = True)
+            
+            answer.save()
         
         return {'question_name' : str(question.name)}
 

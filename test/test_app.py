@@ -177,6 +177,14 @@ class AppTestCase(unittest.TestCase):
                        task_id=task_id,
                        requester_id=str(self.test_requester.id),
                        strategy='min_answers')
+
+        wt_pair_preview = dict(worker_id=test_worker_id,
+                               worker_source=test_worker_source,
+                               task_id=task_id,
+                               requester_id=str(self.test_requester.id),
+                               strategy='min_answers',
+                               preview=True)
+        
         
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
@@ -261,9 +269,6 @@ class AppTestCase(unittest.TestCase):
                                    self.test_requester_api_key},
                           data=json.dumps(answer_get_query_wrong_task_id))
         self.assertEqual(200, rv.status_code)
-        print "TASK IDS"
-        print task_id
-        print task_id2
         answers = json.loads(rv.data)
         self.assertEqual("Sorry, your api token is not correct",
                          answers)
@@ -279,7 +284,25 @@ class AppTestCase(unittest.TestCase):
             self.assertEqual(answer['status'], 'Assigned')
             self.assertNotIn('complete_time', answer)
             self.assertNotIn('value', answer)
-            
+
+        #Test asking for a preview
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair_preview))
+        self.assertEqual(200, rv.status_code)
+        self.assertIn('question_name', json.loads(rv.data))
+                         
+        #There should still be only 3 answers
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query))
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(3, len(answers))
+
         # Test adding answers
         test_answer = dict(question_name=assign1,
                            requester_id = str(self.test_requester.id),
