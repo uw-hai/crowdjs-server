@@ -59,7 +59,11 @@ def hello():
 
 #   return 'Hello World! Dan Weld has been added to the DB!'
     if current_user.is_authenticated():
-        return 'Hello World! Your username is %s' % current_user.email
+        requester = schema.requester.Requester.objects.get_or_404(
+            email=current_user.email)
+        return 'Hello World! Your username is %s. Your authentication token is %s. Your requester_id is %s.' % (current_user.email,
+                               current_user.get_auth_token(),
+                                                                                                               requester.id)
     else:
         return "Hello World! You're not logged in, must be testing"
 
@@ -115,7 +119,7 @@ api.add_resource(QuestionAnswersApi, '/questions/<question_id>/answers') #UNSECU
 
 # next question
 from api.assignment_api import *
-api.add_resource(NextQuestionApi, '/assign_next_question') 
+api.add_resource(NextQuestionApi, '/assign_next_question') #DOES NOT REQUIRE SECURITY
 
 #TODO not implemented yet
 from api.aggregation_api import *
@@ -123,7 +127,7 @@ api.add_resource(AnswerAggregationApi, '/aggregated_answer') #UNSECURED
 
 from api.answer_api import *
 api.add_resource(AnswerApi, '/answers/<answer_id>') #UNSECURED
-api.add_resource(AnswerListApi, '/answers') 
+api.add_resource(AnswerListApi, '/answers') #DOES NOT REQUIRE SECURITY
 
 from api.task_api import *
 api.add_resource(TaskApi, '/tasks/<task_id>') #UNSECURED
