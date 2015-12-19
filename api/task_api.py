@@ -84,7 +84,7 @@ class TaskListApi(Resource):
         taskDocument = Task(name = task_name,
                             description = task_description,
                             requester = requester)
-        taskDocument.save()
+        #taskDocument.save()
 
         # Add questions to db
         #TODO arguments are not checked!
@@ -108,8 +108,9 @@ class TaskListApi(Resource):
 
             questionDocuments.append(questionDocument)
 
-        #Only save the questions after loading all the questions
+        #Only save the task and the questions after loading all the questions
         #and making sure there are no errors
+        taskDocument.save()
         for questionDocument in questionDocuments:
             questionDocument.save()
 
