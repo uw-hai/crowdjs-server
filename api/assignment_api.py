@@ -29,8 +29,6 @@ class NextQuestionApi(Resource):
     GET /url with JSON={worker_id:XXX, task_id:XXX [,strategy:XXX]}
     """
 
-    decorators = [login_required]
-
     def get(self):
 
         """

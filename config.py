@@ -21,6 +21,8 @@ class Config(object):
     SECURITY_PASSWORD_HASH = 'sha512_crypt'
     SECURITY_PASSWORD_SALT = 'abcde'
 
+    MAIL_SUPPRESS_SEND = True
+    
 class DevelopmentConfig(Config):
     DEVELOPMENT = True
     DEBUG = True
@@ -28,3 +30,5 @@ class DevelopmentConfig(Config):
 
 class Production(Config):
     DEBUG = False
+    DEVELOPMENT = False
+    TESTING = False

@@ -21,4 +21,7 @@ To set up Heroku environment to run ZMDP, add the following buildpacks, using th
 
 ## Run instructions
 - Run the application using either `heroku local` (if using Heroku) or `./run.sh .env -b host:port`.
-- Run tests using either `heroku local -f Procfile.test` (if using Heroku) or `./run_tests.sh .env`.
+
+## Testing instructions
+- Use `heroku local -f Procfile.test` (if using Heroku) or
+- `./run_tests.sh .env` AND `./run_tests.sh .production-env` to test both dev and production environments.

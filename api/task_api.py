@@ -42,8 +42,6 @@ delete_task_parser.add_argument('task_id', type=str, required=True)
 #    return "YOUR TOKEN SHOULD MATCH: %s" %current_user.get_auth_token()
 
 class TaskListApi(Resource):
-    # Must be logged in to 
-    decorators = [login_required]
 
     @auth_token_required
     def get(self):
@@ -77,7 +75,6 @@ class TaskListApi(Resource):
         
         if questions is None:
             questions = []
-
         requester = Requester.objects.get_or_404(id = requester_id)
 
         # Save the task first so we can add questions with task id
@@ -85,7 +82,6 @@ class TaskListApi(Resource):
                             description = task_description,
                             requester = requester)
         #taskDocument.save()
-
         # Add questions to db
         #TODO arguments are not checked!
         questionDocuments = []
@@ -93,9 +89,10 @@ class TaskListApi(Resource):
             question_name = question['question_name']
             question_description = question['question_description']
 
-            #optional fields
             question_data = question.get('question_data',"")
             valid_answers = question.get('valid_answers',[])
+
+            #print question_name
 
             questionDocument = Question(name = question_name,
                                         description = question_description,
