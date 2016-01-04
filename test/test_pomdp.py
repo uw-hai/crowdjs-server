@@ -73,7 +73,7 @@ class POMDPTestCase(unittest.TestCase):
         policy = zpomdp.solve(
                 peng_pomdp.states, peng_pomdp.actions, peng_pomdp.observations,
                 peng_pomdp.CLOSURE_f_start(len(peng_pomdp.states)), peng_pomdp.f_transition,
-                peng_pomdp.CLOSURE_f_observation(peng_pomdp.avg_worker_skill), peng_pomdp.f_reward,
+                peng_pomdp.CLOSURE_f_observation(peng_pomdp.avg_worker_skill), peng_pomdp.CLOSURE_f_reward(create=-1,correct=0,incorrect=-10),
                 discount=0.9999, timeout=300)
 
         import numpy as np
@@ -192,7 +192,7 @@ class POMDPTestCase(unittest.TestCase):
         #belief = [2.0/len(peng_pomdp.states) if not get_state(s)[2] else 0 for s in peng_pomdp.states]
         belief = [1.0/(len(peng_pomdp.states)-1) if not pomdp_peng.is_terminal_state(s) else 0.0 for s in peng_pomdp.states]
 
-        #
+        #TODO finish test
         print "belief =",belief
         print "best action, expected reward = ", policy.get_best_action(belief)
 

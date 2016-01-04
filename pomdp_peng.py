@@ -54,20 +54,28 @@ class PengPOMDP(object):
         return f_start
 
     @staticmethod
-    def f_reward(s, a, s1):
-        if is_terminal_state(s):
-            return 0
+    def CLOSURE_f_reward(create=-1,correct=0,incorrect=-10):
+        """
+        Specify rewards for each action.
+        create: reward for creating a new job (usually negative)
+        correct: reward for submitting correct answer
+        incorrect: reward for submitting incorrect answer
+        """
+        def f_reward(s, a, s1):
+            if is_terminal_state(s):
+                return 0
 
-        d,v = get_state(s)
-        if a == 'create-another-job':
-            return -1
-        elif (a == 'submit-true' and v == True
-                or a == 'submit-false' and v == False):
-            # Correct answer
-            return 0
-        else:
-            # Incorrect answer
-            return -10
+            d,v = get_state(s)
+            if a == 'create-another-job':
+                return create
+            elif (a == 'submit-true' and v == True
+                    or a == 'submit-false' and v == False):
+                # Correct answer
+                return correct
+            else:
+                # Incorrect answer
+                return incorrect
+        return f_reward
 
     @staticmethod
     def CLOSURE_f_observation(gamma):
