@@ -15,9 +15,11 @@ app.config.from_object(os.environ['APP_SETTINGS'])
 db = MongoEngine(app)
 api = Api(app)
 
-cors = CORS(app, resources={r"/assign_next_question": {"origins": "*"},
-                            r"/answers":  {"origins": "*"}})
+app.config['CORS_HEADERS'] = 'Content-Type'
+cors = CORS(app, resources={"/assign_next_question": {"origins": "*"},
+                            "/answers":  {"origins": "*"}})
 
+#cors = CORS(app, allow_headers='Content-Type')
 
 import schema.requester
 import schema.question

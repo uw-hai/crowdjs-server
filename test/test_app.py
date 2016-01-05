@@ -184,7 +184,14 @@ class AppTestCase(unittest.TestCase):
                                requester_id=str(self.test_requester.id),
                                strategy='min_answers',
                                preview=True)
-        
+
+        wt_pair_preview_random = dict(worker_id=test_worker_id,
+                                      worker_source=test_worker_source,
+                                      task_id=task_id,
+                                      requester_id=str(self.test_requester.id),
+                                      strategy='random',
+                                      preview=True)
+
         
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
@@ -293,7 +300,16 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(wt_pair_preview))
         self.assertEqual(200, rv.status_code)
         self.assertIn('question_name', json.loads(rv.data))
-                         
+ 
+        #Test asking for a preview using the random strategy
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair_preview_random))
+        self.assertEqual(200, rv.status_code)
+        self.assertIn('question_name', json.loads(rv.data))
+        
         #There should still be only 3 answers
         rv = self.app.get('/answers', content_type='application/json',
                           headers={'Authentication-Token':
