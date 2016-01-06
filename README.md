@@ -29,3 +29,11 @@ To set up Heroku environment to run ZMDP, add the following buildpacks, using th
 ## Testing instructions
 - Use `heroku local -f Procfile.test` (if using Heroku) or
 - Be sure to run both `./run_tests.sh .env` AND `./run_tests.sh .production-env` to test both dev and production environments.
+
+
+## Usage
+- First, create an account and login by going to `server_url/register` and `server_url/login`. You will receive an API Token as well as a requester_id.
+- Next, make a PUT request to `server_url/tasks` to insert your task (consisting of 1 or more questions) into the database. This step requires your credentials.
+- To query the next question a worker should answer, make a GET request to `server_url/assign_next_question`.
+- To insert an answer into the database, make a PUT request to `server_url/answers`.
+- See the documentation for more details about how to make the requests.
