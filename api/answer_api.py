@@ -116,6 +116,7 @@ class AnswerListApi(Resource):
                 sys.stdout.flush()
                 new_questions = []
                 new_question_documents = []
+                new_task_data = None
                 exec(task.global_answer_callback)
                 for new_question_def in new_questions:
                     new_question_name = new_question_def['name']
@@ -137,6 +138,9 @@ class AnswerListApi(Resource):
 
                 for new_question_document in new_question_documents:
                     new_question_document.save()
+                task.data = new_task_data
+                task.save()
+                
             except Exception as err:
                 error_class = err.__class__.__name__
                 print error_class

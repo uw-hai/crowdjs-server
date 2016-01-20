@@ -135,11 +135,10 @@ class TaskListApi(Resource):
             
                 question = questionDocuments[0]
                 new_questions = []
-                
-                old_task_data = task.data
+                new_task_data = None
+                                
                 exec(task.global_answer_callback)
                 
-                task.data = old_task_data
             
             except Exception as err:
                 error_class = err.__class__.__name__                 

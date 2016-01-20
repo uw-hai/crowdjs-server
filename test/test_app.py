@@ -720,7 +720,7 @@ class AppTestCase(unittest.TestCase):
                               question_data='gagan',
                               requester_id = str(self.test_requester.id))
 
-        gac = "new_questions.append({'name' : answer.value + 'joy', 'description' : 'new gac question description','data' : 'bansal','task' : task,'requester' : question.requester, 'answers_per_question' : 5})"
+        gac = "new_questions.append({'name' : answer.value + 'joy', 'description' : 'new gac question description','data' : 'bansal','task' : task,'requester' : question.requester, 'answers_per_question' : 5})\nnew_task_data='cheese'"
 
         exception_gac = "new_questions_exception.append({})"
 
@@ -753,12 +753,15 @@ class AppTestCase(unittest.TestCase):
                                    self.test_requester_api_key},
                           data=json.dumps(test_gac_task))
         self.assertEqual(200, rv.status_code)
+        print json.loads(rv.data)
         self.assertEqual(len(schema.task.Task.objects), num_tasks + 1)
         gac_task_id = json.loads(rv.data)['task_id']
 
         num_questions = len(schema.question.Question.objects)
         gac_task_questions = schema.question.Question.objects(task=gac_task_id)
         self.assertEqual(len(gac_task_questions), 1)
+        self.assertEqual(None,
+                         schema.task.Task.objects(id=gac_task_id)[0].data)
         
         # Test adding answers
         test_answer = dict(question_name=test_gac_question_name,
@@ -774,7 +777,9 @@ class AppTestCase(unittest.TestCase):
         get_answer = json.loads(rv.data)
         self.assertEqual(get_answer['value'], 'love')
         self.assertEqual(num_questions+1, len(schema.question.Question.objects))
-
+        self.assertEqual('cheese',
+                         schema.task.Task.objects(id=gac_task_id)[0].data)
+        
         gac_task_questions = schema.question.Question.objects(task=gac_task_id)
         self.assertEqual(len(gac_task_questions), 2)
 
