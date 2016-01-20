@@ -59,15 +59,24 @@ class NextQuestionApi(Resource):
         if worker == None:
             return "You have not entered a valid worker source. It must be one of: [mturk,] "
 
+        current_assignment = schema.answer.Answer.objects(
+            task = task,
+            worker=worker,
+            status = 'Assigned')
+
+        if len(current_assignment) == 1:
+            return {'question_name' : current_assignment[0].question.name}
+        
         if strategy == 'min_answers':   
-            question = self.min_answers(task_id, worker_id)
+            question = self.min_answers(task_id, worker)
         elif strategy == 'random':
-            question = self.random_choice(task_id, worker_id)
+            question = self.random_choice(task_id, worker)
         else:
             return "error: INVALID STRATEGY"
 
         if question == None:
             return None
+        
 
         if not preview:
             answer = schema.answer.Answer(question = question,
@@ -84,31 +93,39 @@ class NextQuestionApi(Resource):
     ####
     # NOT FULLY TESTED
     ####
-    def random_choice(self, task_id, worker_id):
+    def random_choice(self, task_id, worker):
 
         task = schema.task.Task.objects.get_or_404(id=task_id)
 
         questions = schema.question.Question.objects(task=task)
-
-
+        
         qlist = list(questions)
 
+        #First filter for questions that are alive
         filtered_qlist = filter(
             lambda q:len(get_alive_answers(q)) < q.answers_per_question,
             qlist)
 
+        #Next filter out the questions that the worker has already
+        #answered
+        filtered_qlist = filter(
+            lambda q:
+            len(schema.answer.Answer.objects(question=q, worker=worker,
+                                             status='Completed')) == 0,
+            qlist)
+
+        
         if len(filtered_qlist) == 0:
             return None
         question = random.choice(filtered_qlist)
         return question
 
-    def min_answers(self, task_id, worker_id):
+    def min_answers(self, task_id, worker):
         """
         Assumes that task and worker IDs have been checked.
         """
 
         task = schema.task.Task.objects.get_or_404(id=task_id)
-
         # XXX join across Mongo documents yuck
         # SQL equivalent:
         # SELECT QUESTION_ID, COUNT(*) as num_answers FROM QUESTIONS q, ANSWERS a
@@ -117,6 +134,14 @@ class NextQuestionApi(Resource):
         # Find first question with the fewest answers
         # TODO tiebreaker
         questions = schema.question.Question.objects(task=task)
+
+        #Filter out the questions that the worker has already
+        #answered
+        questions = filter(
+            lambda q:
+            len(schema.answer.Answer.objects(question=q, worker=worker,
+                                             status='Completed')) == 0,
+            questions)            
         min_answers = float("inf") # +infinity
         chosen_question = None
         for question in questions:

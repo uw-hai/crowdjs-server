@@ -166,6 +166,9 @@ class AppTestCase(unittest.TestCase):
         #self.assertEqual(test_turk_id, saved_worker_id)
 
         test_worker_id = 'MTURK123XYZ'
+        test_worker_id_2 = 'MTURK56789'
+        test_worker_id_3 = 'MTURK31415'
+
         test_worker_source = 'mturk'
 
 
@@ -177,6 +180,21 @@ class AppTestCase(unittest.TestCase):
                        task_id=task_id,
                        requester_id=str(self.test_requester.id),
                        strategy='min_answers')
+        
+        wt_pair_worker2 = dict(worker_id=test_worker_id_2,
+                               worker_source=test_worker_source,
+                               task_id=task_id,
+                               requester_id=str(self.test_requester.id),
+                               strategy='min_answers')
+
+        wt_pair_worker3 = dict(worker_id=test_worker_id_3,
+                               worker_source=test_worker_source,
+                               task_id=task_id,
+                               requester_id=str(self.test_requester.id),
+                               strategy='min_answers')
+
+        
+
 
         wt_pair_preview = dict(worker_id=test_worker_id,
                                worker_source=test_worker_source,
@@ -207,6 +225,19 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         assign2 = json.loads(rv.data)['question_name']
 
+        #The assignment should be the same, and there should only be one
+        #answer awaiting completion in the databse
+        self.assertEqual(assign1, assign2)
+        self.assertEqual(len(schema.answer.Answer.objects), 1)
+
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair_worker2))
+        self.assertEqual(200, rv.status_code)
+        assign3 = json.loads(rv.data)['question_name']
+        self.assertEqual(len(schema.answer.Answer.objects), 2)
 
         #try assigning again, but shouldn't work because of
         #exceeded budget
@@ -214,7 +245,7 @@ class AppTestCase(unittest.TestCase):
                           content_type='application/json',
                           headers={'Authentication-Token':
                                    self.test_requester_api_key},
-                          data=json.dumps(wt_pair))
+                          data=json.dumps(wt_pair_worker3))
 
         self.assertEqual(200, rv.status_code)
         self.assertEqual(None, json.loads(rv.data))
@@ -241,9 +272,9 @@ class AppTestCase(unittest.TestCase):
                           content_type='application/json',
                           headers={'Authentication-Token':
                                    self.test_requester_api_key},
-                          data=json.dumps(wt_pair))
+                          data=json.dumps(wt_pair_worker3))
         self.assertEqual(200, rv.status_code)
-        assign3 = json.loads(rv.data)['question_name']
+        assign4 = json.loads(rv.data)['question_name']
 
         
         #Three assignments have been made at this point. That means
@@ -437,10 +468,10 @@ class AppTestCase(unittest.TestCase):
 
 
         # Test adding another answer for which we are expecting one
-        test_answer = dict(question_name=assign2,
+        test_answer = dict(question_name=assign3,
                            requester_id = str(self.test_requester.id),
                            task_id = task_id,
-                           worker_id=test_worker_id,
+                           worker_id=test_worker_id_2,
                            worker_source=test_worker_source,
                            value="assign2value")
         rv = self.app.put('/answers', content_type='application/json',
@@ -450,7 +481,7 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
         self.assertEqual(get_answer['value'], "assign2value")
-
+            
         #There should still be 4 answers
         rv = self.app.get('/answers', content_type='application/json',
                           headers={'Authentication-Token':
@@ -492,15 +523,15 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         question_name = json.loads(rv.data)
 
-        self.assertEqual(question_name['name'], assign2)
+        self.assertEqual(question_name['name'], assign3)
 
 
         # Test adding two answers -one which we are expecting, and
         #one which we will not be expecting after adding the first
-        test_answer = dict(question_name=assign3,
+        test_answer = dict(question_name=assign4,
                            requester_id = str(self.test_requester.id),
                            task_id = task_id,
-                           worker_id=test_worker_id,
+                           worker_id=test_worker_id_3,
                            worker_source=test_worker_source,
                            value="assign3value1")
         rv = self.app.put('/answers', content_type='application/json',
@@ -511,10 +542,10 @@ class AppTestCase(unittest.TestCase):
         get_answer = json.loads(rv.data)
         self.assertEqual(get_answer['value'], "assign3value1")
 
-        test_answer = dict(question_name=assign3,
+        test_answer = dict(question_name=assign4,
                            requester_id = str(self.test_requester.id),
                            task_id = task_id,
-                           worker_id=test_worker_id,
+                           worker_id=test_worker_id_3,
                            worker_source=test_worker_source,
                            value="assign3value2")
         rv = self.app.put('/answers', content_type='application/json',
@@ -566,7 +597,7 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         question_name = json.loads(rv.data)
 
-        self.assertEqual(question_name['name'], assign3)
+        self.assertEqual(question_name['name'], assign4)
 
         #Test that all answers have a completed time greater than assigned time
         rv = self.app.get('/answers', content_type='application/json',
@@ -593,12 +624,12 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         self.assertNotEqual(None, json.loads(rv.data))
 
-        #and the next assignment will not work
+        #and the next assignment will not work because of budget
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
                           headers={'Authentication-Token':
                                    self.test_requester_api_key},
-                          data=json.dumps(wt_pair))
+                          data=json.dumps(wt_pair_worker2))
         self.assertEqual(200, rv.status_code)
         self.assertEqual(None, json.loads(rv.data))
 
@@ -678,6 +709,95 @@ class AppTestCase(unittest.TestCase):
         #print rv.data
 
 
+        #############
+        # Test global_answer_callback (GAC)
+        #############
+        num_tasks = len(schema.task.Task.objects)
+
+        test_gac_question_name = uuid.uuid1().hex
+        test_gac_question = dict(question_name=test_gac_question_name,
+                              question_description='test gac question',
+                              question_data='gagan',
+                              requester_id = str(self.test_requester.id))
+
+        gac = "new_questions.append({'name' : answer.value + 'joy', 'description' : 'new gac question description','data' : 'bansal','task' : task,'requester' : question.requester, 'answers_per_question' : 5})"
+
+        exception_gac = "new_questions_exception.append({})"
+
+        test_gac_task_name = uuid.uuid1().hex
+        test_gac_task = dict(task_name = test_gac_task_name,
+                             task_description = 'GAC task with 1 question',
+                             requester_id = str(self.test_requester.id),
+                             questions = [test_gac_question],
+                             global_answer_callback = exception_gac)
+        
+
+        rv = self.app.put('/tasks', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(test_gac_task))
+        self.assertEqual(200, rv.status_code)
+        self.assertNotIn('task_id', json.loads(rv.data))
+        self.assertEqual(len(schema.task.Task.objects), num_tasks)
+         
+        test_gac_task_name = uuid.uuid1().hex
+        test_gac_task = dict(task_name = test_gac_task_name,
+                             task_description = 'GAC task with 1 question',
+                             requester_id = str(self.test_requester.id),
+                             questions = [test_gac_question],
+                             global_answer_callback = gac)
+        
+
+        rv = self.app.put('/tasks', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(test_gac_task))
+        self.assertEqual(200, rv.status_code)
+        self.assertEqual(len(schema.task.Task.objects), num_tasks + 1)
+        gac_task_id = json.loads(rv.data)['task_id']
+
+        num_questions = len(schema.question.Question.objects)
+        gac_task_questions = schema.question.Question.objects(task=gac_task_id)
+        self.assertEqual(len(gac_task_questions), 1)
+        
+        # Test adding answers
+        test_answer = dict(question_name=test_gac_question_name,
+                           requester_id = str(self.test_requester.id),
+                           task_id = gac_task_id,
+                           worker_id=test_worker_id,
+                           worker_source=test_worker_source,
+                           value="love")        
+
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(200, rv.status_code)
+        get_answer = json.loads(rv.data)
+        self.assertEqual(get_answer['value'], 'love')
+        self.assertEqual(num_questions+1, len(schema.question.Question.objects))
+
+        gac_task_questions = schema.question.Question.objects(task=gac_task_id)
+        self.assertEqual(len(gac_task_questions), 2)
+
+        num_old_questions = 0
+        num_new_questions = 0
+        for gac_task_question in gac_task_questions:
+            if gac_task_question.name == test_gac_question_name:
+                num_old_questions += 1
+            elif gac_task_question.name == 'lovejoy':
+                num_new_questions += 1
+
+        self.assertEqual(num_old_questions, 1)
+        self.assertEqual(num_new_questions, 1)
+        
+        print gac_task_questions
+        
+
+
+        ###############
+        # Test Task Budget
+        ################
+
+        
     def test_populate_db(self):
         # Start with clean DB for sanity
         clear_db()
@@ -766,6 +886,9 @@ class AppTestCase(unittest.TestCase):
         worker1 = dict(platform_id = "turk1", platform_name=worker_platform)
         worker2 = dict(platform_id = "turk2", platform_name=worker_platform)
         worker3 = dict(platform_id = "turk3", platform_name=worker_platform)
+        worker4 = dict(platform_id = "turk4", platform_name=worker_platform)
+        worker5 = dict(platform_id = "turk5", platform_name=worker_platform)
+
 
         #rv = self.app.put('/workers', content_type='application/json', data=json.dumps(worker1))
         #self.assertEqual(200, rv.status_code)
@@ -942,7 +1065,7 @@ class AppTestCase(unittest.TestCase):
 
         
         # Task 1's least answered question is question 2
-        assign1 = dict(worker_id = worker1['platform_id'],
+        assign1 = dict(worker_id = worker4['platform_id'],
                        worker_source = worker_platform,
                        task_id = task1_id,
                        requester_id = requester1_id,
@@ -957,7 +1080,7 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(question2['question_name'], assign1_name)
 
         # Task 2's least answered question is question 4
-        assign2 = dict(worker_id = worker1['platform_id'],
+        assign2 = dict(worker_id = worker5['platform_id'],
                        worker_source = worker_platform,
                        task_id = task2_id,
                        requester_id = requester2_id,

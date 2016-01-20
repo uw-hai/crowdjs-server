@@ -63,7 +63,7 @@ def hello():
     if current_user.is_authenticated():
         requester = schema.requester.Requester.objects.get_or_404(
             email=current_user.email)
-        return 'Hello World! Your username is %s. Your authentication token is %s. Your requester_id is %s.' % (current_user.email,
+        return 'Hello World! Your username is %s.<br/> Your authentication token is %s. <br/> Your requester_id is %s. <br/>' % (current_user.email,
                                current_user.get_auth_token(),
                                                                                                                requester.id)
     else:
