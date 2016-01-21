@@ -105,15 +105,11 @@ class AnswerListApi(Resource):
         answer.value = value
         answer.status = 'Completed'
 
-        print "SAVING THE ANSWER"
-        sys.stdout.flush()
         answer.save()
         
         #Now run any code that the requester specified.
         if not task.global_answer_callback == None:
             try:
-                print "STARTING THE TRY"
-                sys.stdout.flush()
                 new_questions = []
                 new_question_documents = []
                 new_task_data = None
@@ -143,13 +139,7 @@ class AnswerListApi(Resource):
                 
             except Exception as err:
                 error_class = err.__class__.__name__
-                print error_class
-                sys.stdout.flush()
-                 
-                detail = err.args[0]
-                print detail
-                sys.stdout.flush()
-                
+                detail = err.args[0]                
                 cl, exc, tb = sys.exc_info()
                 line_number = traceback.extract_tb(tb)[-1][1]
                 return 'Sorry, your callback threw an exception. %s %s %s ' % (

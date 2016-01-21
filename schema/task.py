@@ -12,5 +12,5 @@ class Task(db.Document):
     global_answer_callback = db.StringField()
     global_answer_callback_url = db.StringField()
     
-    budget = db.IntField()
+    total_task_budget = db.IntField()
     

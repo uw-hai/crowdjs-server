@@ -49,7 +49,8 @@ class AppTestCase(unittest.TestCase):
         test_task = dict(task_name = test_task_name,
                          task_description = 'test task with 2 questions',
                          requester_id = str(self.test_requester.id),
-                         questions = [test_question1, test_question2])
+                         questions = [test_question1, test_question2],
+                         total_task_budget=3)
         
         rv = self.app.put('/tasks',
                           content_type='application/json',
@@ -230,6 +231,7 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(assign1, assign2)
         self.assertEqual(len(schema.answer.Answer.objects), 1)
 
+        #try assigning again to a second worker
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
                           headers={'Authentication-Token':
@@ -615,6 +617,27 @@ class AppTestCase(unittest.TestCase):
 
         self.assertEqual(answers_with_assign_times, 3)
 
+        #Test that we can no longer make assignments because of task budget.
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        self.assertEqual(None, json.loads(rv.data))
+
+        set_budget_data = dict(task_id=task_id,
+                               requester_id=str(self.test_requester.id),
+                               total_task_budget=4)
+        
+        rv = self.app.post('/tasks/set_budget',
+                           content_type='application/json',
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key},
+                           data=json.dumps(set_budget_data))
+        self.assertEqual(200, rv.status_code)
+
+        
         #Test that we can make 1 more assignment.
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',

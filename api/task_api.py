@@ -23,6 +23,9 @@ task_parser.add_argument('global_answer_callback', type=str, required=False,
                          default = None)
 task_parser.add_argument('answers_per_question', type=int, required=False,
                          default = 1)
+task_parser.add_argument('total_task_budget', type=int, required=False,
+                         default = -1)
+
 
 tasklistapi_get_parser = reqparse.RequestParser()
 tasklistapi_get_parser.add_argument('requester_id', type=str, required=True)
@@ -80,6 +83,7 @@ class TaskListApi(Resource):
         answers_per_question = args['answers_per_question']
         task_data = args['data']
         task_global_answer_callback = args['global_answer_callback']
+        total_task_budget = args['total_task_budget']
         
         if questions is None:
             questions = []
@@ -91,7 +95,8 @@ class TaskListApi(Resource):
             description = task_description,
             requester = requester,
             data = task_data,
-            global_answer_callback = task_global_answer_callback)
+            global_answer_callback = task_global_answer_callback,
+            total_task_budget = total_task_budget)
 
         #taskDocument.save()
         # Add questions to db
@@ -170,9 +175,6 @@ class TaskListApi(Resource):
                 line_number = traceback.extract_tb(tb)[-1][1]
 
                 
-        print "QUESTIONS SAVED"
-        sys.stdout.flush()
-        
         return {'task_id' : str(task.id) }
 
 class TaskApi(Resource):
@@ -211,15 +213,33 @@ class TaskSetBudget(Resource):
             return "Sorry, your api token is not correct"
 
         answers_per_question = args['answers_per_question']
+        total_task_budget = args['total_task_budget']
 
-        questions = Question.objects(task=task_id)
+        if not answers_per_question == None:
+            questions = Question.objects(task=task_id)
+            for question in questions:
+                question.answers_per_question = answers_per_question
+                question.save()
 
-        for question in questions:
-            question.answers_per_question = answers_per_question
-            question.save()
-            
-        return "Task %s now allows %d answers per question" % (
-            task_id, answers_per_question)
+        if not total_task_budget == None:
+            task = Task.objects.get_or_404(id=task_id)
+            task.total_task_budget = total_task_budget
+            task.save()
+
+        if answers_per_question:
+            if not total_task_budget:
+                return "Task %s now allows %d answers per question" % (
+                    task_id, answers_per_question)
+            else:
+                return "Task %s now allows %d answers per question and has a total task budget of %d" % (
+                    task_id, answers_per_question, total_task_budget)
+        else:
+            if total_task_budget:
+                return "Task %s now has a total task budget of %d" % (
+                    task_id, total_task_budget)
+
+                
+        
 
 
 class TaskDelete(Resource):

@@ -66,6 +66,11 @@ class NextQuestionApi(Resource):
 
         if len(current_assignment) == 1:
             return {'question_name' : current_assignment[0].question.name}
+
+        #If the task budget has been reached, then make no more assignemnts
+        if (len(schema.answer.Answer.objects(task=task, is_alive=True)) >=
+            task.total_task_budget and task.total_task_budget != -1):
+            return None
         
         if strategy == 'min_answers':   
             question = self.min_answers(task_id, worker)
