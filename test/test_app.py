@@ -250,7 +250,7 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(wt_pair_worker3))
 
         self.assertEqual(200, rv.status_code)
-        self.assertEqual(None, json.loads(rv.data))
+        self.assertIn('error', json.loads(rv.data))
 
         
         set_budget_data = dict(task_id=task_id,
@@ -624,11 +624,11 @@ class AppTestCase(unittest.TestCase):
                                    self.test_requester_api_key},
                           data=json.dumps(wt_pair))
         self.assertEqual(200, rv.status_code)
-        self.assertEqual(None, json.loads(rv.data))
+        self.assertIn('error', json.loads(rv.data))
 
         set_budget_data = dict(task_id=task_id,
                                requester_id=str(self.test_requester.id),
-                               total_task_budget=4)
+                               total_task_budget=6)
         
         rv = self.app.post('/tasks/set_budget',
                            content_type='application/json',
@@ -654,7 +654,7 @@ class AppTestCase(unittest.TestCase):
                                    self.test_requester_api_key},
                           data=json.dumps(wt_pair_worker2))
         self.assertEqual(200, rv.status_code)
-        self.assertEqual(None, json.loads(rv.data))
+        self.assertIn('error', json.loads(rv.data))
 
         # test /requesters functionality
         rv = self.app.get('/requesters')

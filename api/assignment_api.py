@@ -70,17 +70,17 @@ class NextQuestionApi(Resource):
         #If the task budget has been reached, then make no more assignemnts
         if (len(schema.answer.Answer.objects(task=task, is_alive=True)) >=
             task.total_task_budget and task.total_task_budget != -1):
-            return None
+            return {'error' : 'The total task budget has been reached'}
         
         if strategy == 'min_answers':   
             question = self.min_answers(task_id, worker)
         elif strategy == 'random':
             question = self.random_choice(task_id, worker)
         else:
-            return "error: INVALID STRATEGY"
+            return {'error' : 'Invalid Strategy'}
 
         if question == None:
-            return None
+            return {'error' : 'The strategy did not assign any question'}
         
 
         if not preview:
