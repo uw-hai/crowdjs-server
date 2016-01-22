@@ -62,10 +62,18 @@ class ZPOMDP(POMDP):
         pass
 
     def solve(self, states, actions, observations, f_start, f_transition,
-              f_observation, f_reward, discount, timeout=None):
-        # TODO(jbragg): Parse policy output and return object before
-        # deleting directory.
-        d = tempfile.mkdtemp()
+              f_observation, f_reward, discount, timeout=None, directory=None):
+        """
+        Optional: save model and policy files in pre-existing directory
+        """
+        if directory:
+            # save files in user directory
+            assert os.path.isdir(directory)
+            d = directory
+        else:
+            # temporary, only return policy
+            d = tempfile.mkdtemp()
+
         model_filename = os.path.join(d, 'm.pomdp')
         policy_filename = os.path.join(d, 'p.policy')
         with open(model_filename, 'w') as f:
@@ -86,5 +94,8 @@ class ZPOMDP(POMDP):
         # parse policy output
         policy = pomdp_policy.POMDPPolicy(policy_filename, file_format='zmdp', n_states=len(states))
 
-        #shutil.rmtree(d)
+        if not directory:
+            # delete temporary directory
+            shutil.rmtree(d)
+            
         return policy

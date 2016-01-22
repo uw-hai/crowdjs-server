@@ -37,7 +37,7 @@ class PengPOMDP(object):
         #NOTE ordering: [(True,0.0),...,(True,1.0),(False,0.0),...,(False,1.0),<TERMINAL STATE>]
         self.states = [make_state(d,v) for v,d in itertools.product(answers, bins)] + [TERMINAL_STATE]
         self.actions = ['create-another-job', 'submit-true', 'submit-false']
-        self.observations = ['True', 'False']
+        self.observations = ['True', 'False', 'None']
         self.avg_worker_skill = avg_worker_skill
 #       self.create_job_cost = create_job_cost
 #       self.reward_correct = reward_correct
@@ -83,20 +83,36 @@ class PengPOMDP(object):
             #TODO do we care about obs in terminal state?
             #BUG just return 1/0 for now so the math works
             if is_terminal_state(s):
-                if o == 'True':
+                if o == 'None':
                     return 1.0
                 else:
                     return 0.0
 
-            d,v = get_state(s)
-            o = True if o == 'True' else False
-            #a(d,gamma) = 0.5*(1+(1-d)^gamma)
-            #P(o = v|d) = a(d,gamma)
-            P_correct = 0.5*(1+(1-d)**gamma)
-            if o == v:
-                return P_correct
+            if a == 'submit-true':
+                if o == 'None':
+                    return 1.0
+                else:
+                    return 0.0
+            elif a == 'submit-false':
+                if o == 'None':
+                    return 1.0
+                else:
+                    return 0.0
             else:
-                return 1-P_correct
+                assert a == 'create-another-job'
+
+                if o == 'None':
+                    return 0.0
+
+                d,v = get_state(s)
+                o = True if o == 'True' else False
+                #a(d,gamma) = 0.5*(1+(1-d)^gamma)
+                #P(o = v|d) = a(d,gamma)
+                P_correct = 0.5*(1+(1-d)**gamma)
+                if o == v:
+                    return P_correct
+                else:
+                    return 1-P_correct
         return f_observation
 
     @staticmethod
