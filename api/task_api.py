@@ -253,13 +253,13 @@ class TaskDelete(Resource):
 
         if task_id:
             if not requester_token_match_and_task_match(requester_id, task_id):
-                return "Sorry, you cannot delete that task"
+                return {'error' : 'Sorry, you cannot delete that task'}
  
             Answer.objects(task = task_id).delete()
             Question.objects(task = task_id).delete()
             Task.objects.get(id = task_id).delete()
             
-            return "Task %s deleted!" % task_id
+            return {'success' : 'Task %s deleted!' % task_id}
 
         else:
             requester = Requester.objects.get_or_404(id = requester_id)
@@ -269,3 +269,5 @@ class TaskDelete(Resource):
                 Question.objects(task = task).delete()
             tasks.delete()
                 
+            return {'success' :
+                    'All tasks for requester %s deleted!' % requester_id}
