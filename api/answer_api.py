@@ -9,6 +9,7 @@ from schema.task import Task
 from util import get_or_insert_worker, requester_token_match_and_task_match, requester_token_match, requester_task_match
 import datetime
 import json
+import sys, traceback
 
 answer_parser = reqparse.RequestParser()
 answer_parser.add_argument('requester_id', type=str, required=True)
@@ -83,6 +84,12 @@ class AnswerListApi(Resource):
         answers = Answer.objects(question = question,
                                 worker = worker,
                                 status = 'Assigned')
+        #print "LEN ANSWERS"
+        #print question.name
+        #print worker.platform_id
+        #print len(answers)
+        #for a in Answer.objects:
+        #    print a.id
         
         if len(answers) == 0:
             answer = Answer(question = question,
@@ -100,8 +107,44 @@ class AnswerListApi(Resource):
 
         answer.save()
         
-        #return "Answer inserted"
-        #TODO what to return
+        #Now run any code that the requester specified.
+        if not task.global_answer_callback == None:
+            try:
+                new_questions = []
+                new_question_documents = []
+                new_task_data = None
+                exec(task.global_answer_callback)
+                for new_question_def in new_questions:
+                    new_question_name = new_question_def['name']
+                    new_question_description = new_question_def['description']
+                    new_question_data = new_question_def['data']
+                    new_question_task = new_question_def['task']
+                    new_question_requester = new_question_def['requester']
+                    new_question_apq = new_question_def[
+                        'answers_per_question']
+                    
+                    new_question = Question(
+                        name = new_question_name,
+                        description = new_question_description,
+                        data = new_question_data,
+                        task = new_question_task,
+                        requester = new_question_requester,
+                        answers_per_question = new_question_apq)
+                    new_question_documents.append(new_question)
+
+                for new_question_document in new_question_documents:
+                    new_question_document.save()
+                task.data = new_task_data
+                task.save()
+                
+            except Exception as err:
+                error_class = err.__class__.__name__
+                detail = err.args[0]                
+                cl, exc, tb = sys.exc_info()
+                line_number = traceback.extract_tb(tb)[-1][1]
+                return 'Sorry, your callback threw an exception. %s %s %s ' % (
+                    error_class, detail, line_number)
+        
         return {'value' : answer.value}
 
 class AnswerApi(Resource):

@@ -50,15 +50,18 @@ class QuestionListApi(Resource):
 
         # check references
         requester_id = args['requester_id']
-        requester = schema.requester.Requester.objects.get_or_404(id=requester_id)
+        requester = schema.requester.Requester.objects.get_or_404(
+            id=requester_id)
 
         task_id = args['task_id']
         task = schema.task.Task.objects.get_or_404(id=task_id)
 
-        questionDocument = schema.question.Question(name = question_name, description = question_description, 
-                data = question_data,
-                valid_answers = valid_answers, 
-                task = task, requester = requester)
+        questionDocument = schema.question.Question(
+            name = question_name,
+            description = question_description, 
+            data = question_data,
+            valid_answers = valid_answers, 
+            task = task, requester = requester)
 
         questionDocument.save()
 
