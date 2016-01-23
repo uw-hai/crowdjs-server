@@ -20,6 +20,8 @@ answer_parser.add_argument('worker_source', type=str, required=True)
 answer_parser.add_argument('value', type=str, required=True)
 answer_parser.add_argument('is_alive', type=bool, required=False,
                            default=False)
+answer_parser.add_argument('call_gac', type=bool, required=False,
+                           default=True)
 
 answer_get_parser = reqparse.RequestParser()
 answer_get_parser.add_argument('requester_id', type=str, required=True)
@@ -68,6 +70,7 @@ class AnswerListApi(Resource):
         worker_source = args['worker_source']
         value = args['value']
         is_alive = args['is_alive']
+        call_gac = args['call_gac']
 
         requester = Requester.objects.get_or_404(id = requester_id)
         task = Task.objects.get_or_404(id = task_id)
@@ -108,11 +111,13 @@ class AnswerListApi(Resource):
         answer.save()
         
         #Now run any code that the requester specified.
-        if not task.global_answer_callback == None:
+        if not task.global_answer_callback == None and call_gac:
             try:
                 new_questions = []
-                new_question_documents = []
                 new_task_data = None
+                old_question_budget = None
+
+                new_question_documents = []
                 exec(task.global_answer_callback)
                 for new_question_def in new_questions:
                     new_question_name = new_question_def['name']
@@ -136,6 +141,10 @@ class AnswerListApi(Resource):
                     new_question_document.save()
                 task.data = new_task_data
                 task.save()
+
+                if not old_question_budget == None:
+                    question.answers_per_question = old_question_budget
+                    question.save()
                 
             except Exception as err:
                 error_class = err.__class__.__name__

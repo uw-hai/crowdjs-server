@@ -756,7 +756,7 @@ class AppTestCase(unittest.TestCase):
                               question_data='gagan',
                               requester_id = str(self.test_requester.id))
 
-        gac = "new_questions.append({'name' : answer.value + 'joy', 'description' : 'new gac question description','data' : 'bansal','task' : task,'requester' : question.requester, 'answers_per_question' : 5})\nnew_task_data='cheese'"
+        gac = "new_questions.append({'name' : answer.value + 'joy', 'description' : 'new gac question description','data' : 'bansal','task' : task,'requester' : question.requester, 'answers_per_question' : 5})\nnew_task_data='cheese'\nold_question_budget=0"
 
         exception_gac = "new_questions_exception.append({})"
 
@@ -767,7 +767,7 @@ class AppTestCase(unittest.TestCase):
                              questions = [test_gac_question],
                              global_answer_callback = exception_gac)
         
-
+        #First try a GAC that throws an exception
         rv = self.app.put('/tasks', content_type='application/json',
                           headers={'Authentication-Token':
                                    self.test_requester_api_key},
@@ -783,7 +783,7 @@ class AppTestCase(unittest.TestCase):
                              questions = [test_gac_question],
                              global_answer_callback = gac)
         
-
+        #Now try a real GAC
         rv = self.app.put('/tasks', content_type='application/json',
                           headers={'Authentication-Token':
                                    self.test_requester_api_key},
@@ -823,6 +823,7 @@ class AppTestCase(unittest.TestCase):
         num_new_questions = 0
         for gac_task_question in gac_task_questions:
             if gac_task_question.name == test_gac_question_name:
+                self.assertEqual(gac_task_question.answers_per_question,0)
                 num_old_questions += 1
             elif gac_task_question.name == 'lovejoy':
                 num_new_questions += 1
@@ -830,10 +831,48 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(num_old_questions, 1)
         self.assertEqual(num_new_questions, 1)
         
-        print gac_task_questions
+        #Try assigning questions. Because the GAC caused the budget of
+        #the old question to go to 0, it should not be assigned.
         
+        gac_assign_data = dict(worker_id=test_worker_id_2,
+                               worker_source=test_worker_source,
+                               task_id=gac_task_id,
+                               requester_id=str(self.test_requester.id),
+                               strategy='min_answers')
 
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(gac_assign_data))
+        self.assertEqual(200, rv.status_code)
+        gac_assignment = json.loads(rv.data)['question_name']
+        self.assertEqual(gac_assignment, 'lovejoy')
 
+        test_answer = dict(question_name='lovejoy',
+                           requester_id = str(self.test_requester.id),
+                           task_id = gac_task_id,
+                           worker_id=test_worker_id_2,
+                           worker_source=test_worker_source,
+                           value="football",
+                           call_gac=False)        
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(200, rv.status_code)
+        self.assertEqual(
+            len(schema.question.Question.objects(task=gac_task_id)),
+            2)
+        
+        #This should fail even though there are two valid questions
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(gac_assign_data))
+        self.assertEqual(200, rv.status_code)
+        self.assertNotIn('question_name', json.loads(rv.data))
+        self.assertIn('error', json.loads(rv.data))
+        
         ###############
         # Test Task Budget
         ################
