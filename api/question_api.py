@@ -1,10 +1,12 @@
 from flask.ext.restful import reqparse, abort, Api, Resource
+from flask.ext.security import login_required, current_user, auth_token_required
 import schema.question
-import schema.task
-import schema.requester
+from schema.task import Task
+from schema.requester import Requester
 import schema.answer
 import json
 import random
+from util import requester_token_match, requester_token_match_and_task_match
 
 
 question_parser = reqparse.RequestParser()
@@ -14,6 +16,11 @@ question_parser.add_argument('question_description', type=str, required=True)
 question_parser.add_argument('task_id', type=str, required=True)
 question_parser.add_argument('question_data', type=str, required=False)
 question_parser.add_argument('valid_answers', type=list, location='json', required=False)
+
+
+question_get_parser = reqparse.RequestParser()
+question_get_parser.add_argument('requester_id', type=str, required=True)
+question_get_parser.add_argument('task_id', type=str, required=False)
 
 class QuestionApi(Resource):
     def get(self, question_id):
@@ -28,11 +35,32 @@ class QuestionApi(Resource):
             return question
 
 class QuestionListApi(Resource):
+
+    @auth_token_required
     def get(self):
         """
-        Get list of all questions.
+        Get list of all questions for a given task_id, or for a requester.
         """
-        questions = schema.question.Question.objects
+        args = question_get_parser.parse_args()
+                
+        task_id = args['task_id']
+        requester_id = args['requester_id']
+        
+        if not requester_token_match(requester_id):
+            return {"error" : "Sorry, your api token is not correct"}
+
+        if task_id:
+            if not requester_token_match_and_task_match(requester_id, task_id):
+                return {"error" : "Sorry, your task_id is not correct"}
+            task = Task.objects.get_or_404(id = task_id)
+            questions = schema.question.Question.objects(
+                task = task)
+
+        else:
+            requester = Requester.objects.get_or_404(id = requester_id)
+            questions = schema.question.Question.objects(
+                requester = requester)
+
         return json.loads(questions.to_json())
 
     def put(self):

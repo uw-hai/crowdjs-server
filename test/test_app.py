@@ -143,13 +143,41 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(test_question3_name, get_question['name'])
         self.assertEqual(test_question3_description, get_question['description'])
 
-        # Check list of all questions
+        # Check list of all questions using questionlistapi
         rv = self.app.get('/questions')
+        self.assertEqual(401, rv.status_code)
+
+        questions_get_request = dict(requester_id = str(self.test_requester.id))
+        rv = self.app.get('/questions', content_type = 'application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(questions_get_request))
         self.assertEqual(200, rv.status_code)
         ret_data = json.loads(rv.data)
         self.assertEqual(3, len(ret_data))
 
 
+        questions_get_request = dict(requester_id = str(self.test_requester.id),
+                                     task_id = task_id)
+        rv = self.app.get('/questions', content_type = 'application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(questions_get_request))
+        self.assertEqual(200, rv.status_code)
+        ret_data = json.loads(rv.data)
+        self.assertEqual(2, len(ret_data))
+        
+        questions_get_request = dict(requester_id = str(self.test_requester.id),
+                                     task_id = task_id2)
+        rv = self.app.get('/questions', content_type = 'application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(questions_get_request))
+        self.assertEqual(200, rv.status_code)
+        ret_data = json.loads(rv.data)
+        self.assertEqual(1, len(ret_data))
+
+        
         ###
         # There maybe should not be an API for adding/modifying workers
         ###
@@ -863,7 +891,8 @@ class AppTestCase(unittest.TestCase):
             len(schema.question.Question.objects(task=gac_task_id)),
             2)
         
-        #This should fail even though there are two valid questions
+        #This should fail because one question now has a budget of 0
+        #and the other question cannot be answered by the same worker.
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
                           headers={'Authentication-Token':
@@ -873,9 +902,6 @@ class AppTestCase(unittest.TestCase):
         self.assertNotIn('question_name', json.loads(rv.data))
         self.assertIn('error', json.loads(rv.data))
         
-        ###############
-        # Test Task Budget
-        ################
 
         
     def test_populate_db(self):
