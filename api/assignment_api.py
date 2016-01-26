@@ -117,7 +117,7 @@ class NextQuestionApi(Resource):
             lambda q:
             len(schema.answer.Answer.objects(question=q, worker=worker,
                                              status='Completed')) == 0,
-            qlist)
+            filtered_qlist)
 
         
         if len(filtered_qlist) == 0:

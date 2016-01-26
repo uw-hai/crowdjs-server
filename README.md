@@ -30,7 +30,7 @@ To set up Heroku environment to run ZMDP, add the following buildpacks, using th
 ## Testing instructions
 - Use `heroku local -f Procfile.test` (if using Heroku) or
 - Be sure to run both `./run_tests.sh .env` AND `./run_tests.sh .production-env` to test both dev and production environments.
-
+- The test/ folder also contains folders with end-to-end workflow tests. To run an end-to-end test, cd into the desired *_workflow/ folder, and read the README. 
 
 ## Usage
 - First, create an account and login by going to `server_url/register` and `server_url/login`. You will receive an API Token as well as a requester_id.

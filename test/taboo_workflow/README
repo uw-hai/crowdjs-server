@@ -1,0 +1,2 @@
+To run the taboo workflow test, simply run python test.py. This test assumes that you have a server running somewhere, and you have created a requester account with it. Be sure to modify the requester_id, API_KEY, and url to the server at the top of the file.
+
