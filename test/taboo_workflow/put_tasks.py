@@ -69,12 +69,12 @@ def put_tasks(crowdjs_url, email, API_KEY, requester_id, answers_per_question):
     task_id = response_content['task_id']
 
 
-    logfile_name = 'logs/%s.txt' % datetime.datetime.now().ctime()
-    with open(logfile_name, 'w') as logFile:
-        logFile.write('%s\n' % task_name)
-        logFile.write('%s\n' % task_description)
-        logFile.write('%s\n' % task_id)
-        logFile.write(pickle.dumps(questions))
+    #logfile_name = 'logs/%s.txt' % datetime.datetime.now().ctime()
+    #with open(logfile_name, 'w') as logFile:
+    #    logFile.write('%s\n' % task_name)
+    #    logFile.write('%s\n' % task_description)
+    #    logFile.write('%s\n' % task_id)
+    #    logFile.write(pickle.dumps(questions))
 
 
-    return response_content, logfile_name
+    return response_content, questions

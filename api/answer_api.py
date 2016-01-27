@@ -111,7 +111,8 @@ class AnswerListApi(Resource):
         answer.save()
         
         #Now run any code that the requester specified.
-        if not task.global_answer_callback == None and call_gac:
+        if (not task.global_answer_callback == None and
+            call_gac):
             try:
                 new_questions = []
                 new_task_data = None

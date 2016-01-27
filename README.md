@@ -30,11 +30,11 @@ To set up Heroku environment to run ZMDP, add the following buildpacks, using th
 ## Testing instructions
 - Use `heroku local -f Procfile.test` (if using Heroku) or
 - Be sure to run both `./run_tests.sh .env` AND `./run_tests.sh .production-env` to test both dev and production environments.
-- The test/ folder also contains folders with end-to-end workflow tests. To run an end-to-end test, cd into the desired *_workflow/ folder, and read the README. 
+- The `test/` folder also contains folders with more tests that include end-to-end workflow tests as well as more unit tests. To run these, read the README inside the desired `*_workflow/` folder.
 
 ## Usage
 - First, create an account and login by going to `server_url/register` and `server_url/login`. You will receive an API Token as well as a requester_id.
-- Next, make a PUT request to `server_url/tasks` to insert your task (consisting of 1 or more questions) into the database. This step requires your credentials.
+- Next, make a PUT request to `server_url/tasks` to insert your task (consisting of 1 or more questions) into the database. This step requires your credentials. When inserting a task, you can include a function that will be called every time an answer is submitted. You can use this function to create new questions and remove old questions. Keep in mind this function will always be called, unless you specify otherwise, even if the answer submitted is for a question that has already been removed. See the documentation for more details.
 - To query the next question a worker should answer, make a GET request to `server_url/assign_next_question`.
 - To insert an answer into the database, make a PUT request to `server_url/answers`.
 - See the documentation for more details about how to make the requests.

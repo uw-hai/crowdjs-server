@@ -80,7 +80,7 @@ class TaskListApi(Resource):
         task_name = args['task_name']
         task_description = args['task_description']
         questions = args['questions']
-        answers_per_question = args['answers_per_question']
+        task_answers_per_question = args['answers_per_question']
         task_data = args['data']
         task_global_answer_callback = args['global_answer_callback']
         total_task_budget = args['total_task_budget']
@@ -98,9 +98,6 @@ class TaskListApi(Resource):
             global_answer_callback = task_global_answer_callback,
             total_task_budget = total_task_budget)
 
-        #taskDocument.save()
-        # Add questions to db
-        #TODO arguments are not checked!
         questionDocuments = []
         for question in questions:
             question_name = question['question_name']
@@ -108,8 +105,9 @@ class TaskListApi(Resource):
 
             question_data = question.get('question_data',"")
             valid_answers = question.get('valid_answers',[])
-
-            #print question_name
+            answers_per_question = question.get('answers_per_question',
+                                                task_answers_per_question)
+            
 
             questionDocument = Question(name = question_name,
                                         description = question_description,
