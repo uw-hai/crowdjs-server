@@ -1,4 +1,5 @@
 from flask.ext.restful import reqparse, abort, Api, Resource
+import flask.ext.restful.inputs
 from flask.ext.security import login_required, current_user, auth_token_required
 from flask.ext.cors import cross_origin
 import datetime
@@ -20,7 +21,8 @@ nextq_parser.add_argument('task_id', type=str, required=True)
 nextq_parser.add_argument('requester_id', type=str, required=True)
 nextq_parser.add_argument('strategy', type=str, required=False,
                           default='random')
-nextq_parser.add_argument('preview', type=bool, required=False,
+nextq_parser.add_argument('preview', type=flask.ext.restful.inputs.boolean,
+                          required=False,
                           default=False)
 
 

@@ -5,7 +5,8 @@ import datetime
 import json
 
 
-def put_tasks(crowdjs_url, email, API_KEY, requester_id, answers_per_question):
+def put_tasks(crowdjs_url, email, API_KEY, requester_id, answers_per_question,
+              threshold):
     crowdjs_url += '/tasks'
     #question_file = open('turkTrainingRandom50.csv', 'r')
     question_file = open('turkTrainingRandom1.csv', 'r')
@@ -29,7 +30,7 @@ def put_tasks(crowdjs_url, email, API_KEY, requester_id, answers_per_question):
         entity2 = line[3]
         relation = line[4]
 
-        taboo_words = {'not': 3}
+        taboo_words = {'not': threshold+1}
         
         data = (sentence, sentence_bolded, entity1, entity2,
                 relation, 'not;', lineNumber)
@@ -48,6 +49,9 @@ def put_tasks(crowdjs_url, email, API_KEY, requester_id, answers_per_question):
 
     global_answer_callback_file = open('global_answer_callback.py', 'r') 
     global_answer_callback_string = global_answer_callback_file.read()
+    global_answer_callback_string = ("threshold=%d\nanswers_per_question=%d" %
+                                     (threshold, answers_per_question) +
+                                     global_answer_callback_string)
     
     data = {'task_name': task_name,
             'task_description': task_description,

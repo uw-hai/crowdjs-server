@@ -14,10 +14,13 @@ class TestTabooWorkflow(unittest.TestCase):
         self.crowdjs_url = 'http://localhost:8000'
         self.email = 'dan@crowdlab.com'
         #self.API_KEY = 'WyI1NjhhZmU3NGRiOGY0ZjAwMDk2MTQxNjIiLCI0MjQ2MDRlZDQyYmQ4YTc0NWUxZWIxMmI1YzJmODdjMCJd.CYB1Hg.omn2MCltYW2oORhQUraq5el4O-U' #floating-basin
-        self.API_KEY = 'WyI1NmE4MTlmZjQwZjM4ODIwNzQ2MTQyYWEiLCJhNDcyOWVjNTA5MDM3MjNiMGE1MWYzMWRjZWQyNWE5NSJd.CYmriQ.g9QGDw_e4qTghcW_FOP38SSRcz8' #localhost
+        self.API_KEY = 'WyI1NmE4MjhjZTQwZjM4ODIyOWJhYjU3N2QiLCI1YzdmYTdiMzQxOTU2MzU4MThiNjJlNDY0MDFmNDk5MiJd.CZK5JA.4sDJAROM6vmImPuIEyuFUmErFuY' #localhost
         #self.requester_id = '568afe74db8f4f0009614162' #floating-basin
-        self.requester_id = '56a819ff40f38820746142aa' #localhost
+        self.requester_id = '56a828ce40f388229bab577d' #localhost
 
+        self.threshold = 2
+        self.answers_per_question = 3
+        
     def test_workflow(self):
 
         crowdjs_url = self.crowdjs_url
@@ -33,13 +36,31 @@ class TestTabooWorkflow(unittest.TestCase):
         #Now put in a new task
         print "INSERTING TASK"
         (response, questions) = put_tasks(crowdjs_url, email,
-                                             API_KEY, requester_id, 1)
+                                          API_KEY, requester_id, 1,
+                                          self.threshold)
         self.assertIn('task_id', response)
         task_id = response['task_id']
-                
+
+        #Now preview a question
+        print "PREVIEWING A QUESTION"
+        assign_url = '/assign_next_question?worker_id=worker1&worker_source=mturk&task_id=%s&requester_id=%s&preview=True' % (task_id, requester_id)
+        assign_url = crowdjs_url + assign_url
+        r = requests.get(assign_url)
+        self.assertIn('question_name', r.json())
+        question_name = r.json()['question_name']
+
+        #There should not be any answers in the answers table
+        answer_get_url = '/answers?requester_id=%s&task_id=%s' % (
+            requester_id, task_id)
+        answer_get_url = crowdjs_url + answer_get_url
+        headers = {'Authentication-Token': API_KEY}
+        r = requests.get(answer_get_url, headers=headers)
+        answers = r.json()
+        self.assertEqual(len(answers), 0)
+        
         #Now assign a question
         print "ASSIGNING A QUESTION"
-        assign_url = '/assign_next_question?worker_id=worker1&worker_source=mturk&task_id=%s&requester_id=%s' % (task_id, requester_id)
+        assign_url = '/assign_next_question?worker_id=worker1&worker_source=mturk&task_id=%s&requester_id=%s&preview=False' % (task_id, requester_id)
         assign_url = crowdjs_url + assign_url
         r = requests.get(assign_url)
         self.assertIn('question_name', r.json())
@@ -113,6 +134,16 @@ class TestTabooWorkflow(unittest.TestCase):
         self.assertNotIn('head', taboo_words)
         self.assertNotIn('honcho', taboo_words)
         self.assertIn('not', taboo_words)
+
+        #There should now be another answer awaiting a value in the databse
+        answer_get_url = '/answers?requester_id=%s&task_id=%s' % (
+            requester_id, task_id)
+        answer_get_url = crowdjs_url + answer_get_url
+        headers = {'Authentication-Token': API_KEY}
+        r = requests.get(answer_get_url, headers=headers)
+
+        answers = r.json()
+        self.assertEqual(len(answers), 2)
         
         #Now do a question
         print "SUBMITTING ANOTHER ANSWER"        
@@ -192,7 +223,8 @@ class TestTabooWorkflow(unittest.TestCase):
         #Now put in a new task
         print "INSERTING TASK"
         (response, questions) = put_tasks(crowdjs_url, email,
-                                          API_KEY, requester_id, 3)
+                                          API_KEY, requester_id, 3,
+                                          self.threshold)
         self.assertIn('task_id', response)
         task_id = response['task_id']
         

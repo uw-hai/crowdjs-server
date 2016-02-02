@@ -7,9 +7,6 @@ import nltk
 nltk.download('punkt')
 nltk.download('stopwords')
 
-answers_per_question = 3
-threshold = 2
-
 print "OLD QUESTION BEING PARSED"
 sys.stdout.flush()
     
