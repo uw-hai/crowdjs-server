@@ -93,7 +93,7 @@ class TaskController():
             q_id, w_id, gamma_est, value = o
             assert not self.observations[q_id].has_key(w_id)
             self.observations[q_id][w_id] = o
-            self.HELPER_update_belief(q_id, o, gamma_est)
+            self.HELPER_update_belief(q_id, value, gamma_est)
 
     def get_action(self, q_id):
         """
