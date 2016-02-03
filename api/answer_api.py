@@ -1,4 +1,5 @@
 from flask.ext.restful import reqparse, abort, Api, Resource
+import flask.ext.restful.inputs
 from flask.ext.security import login_required, current_user, auth_token_required
 from flask import url_for
 from schema.answer import Answer
@@ -18,9 +19,11 @@ answer_parser.add_argument('question_name', type=str, required=True)
 answer_parser.add_argument('worker_id', type=str, required=True)
 answer_parser.add_argument('worker_source', type=str, required=True)
 answer_parser.add_argument('value', type=str, required=True)
-answer_parser.add_argument('is_alive', type=bool, required=False,
+answer_parser.add_argument('is_alive', type=flask.ext.restful.inputs.boolean,
+                           required=False,
                            default=False)
-answer_parser.add_argument('call_gac', type=bool, required=False,
+answer_parser.add_argument('call_gac', type=flask.ext.restful.inputs.boolean,
+                           required=False,
                            default=True)
 
 answer_get_parser = reqparse.RequestParser()
