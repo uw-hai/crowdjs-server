@@ -58,7 +58,7 @@ var assign_url = url + "/assign_next_question?";
   var worker_id = getQueryVariable("workerId");
   var worker_source = 'mturk';
   //var task_id = '569ee15940f3884b06843205';
-  var task_id = '56b3c5595b9b0d000a4fc1ec';
+  var task_id = '56b51835d8806c000aadfab1';
 
   var requester_id = '56b3c0ef5b9b0d00091fbeaa';
   //var requester_id = '569ee11340f3884b06843204'; 
@@ -111,14 +111,18 @@ function validateForm() {
     submit_answer_request['worker_source'] = worker_source;
     submit_answer_request['value'] = x;
 
-    submit_answer_xmlhttp.open("PUT", submit_answer_url, false);
+    submit_answer_xmlhttp.open("PUT", submit_answer_url, true);
     submit_answer_xmlhttp.setRequestHeader("Content-type",
 					   "application/json");
-    submit_answer_xmlhttp.send(JSON.stringify(submit_answer_request));
-
+    
     submit_answer_xmlhttp.onreadystatechange = function() {
+	document.getElementById('submitButton').setAttribute('onclick', '')
 	console.log(submit_answer_xmlhttp.responseText);
+	document.getElementById('submitButton').click()
     }
+
+    submit_answer_xmlhttp.send(JSON.stringify(submit_answer_request));
+    return false;
     
 }
 
