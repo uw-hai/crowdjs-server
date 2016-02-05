@@ -1,0 +1,185 @@
+<!-- Bootstrap v3.0.3 -->
+<link href="https://s3.amazonaws.com/mturk-public/bs30/css/bootstrap.min.css" rel="stylesheet" />
+<section class="container" id="DataCollection" style="margin-bottom:15px; padding: 10px 10px; font-family: Verdana, Geneva, sans-serif; color:#333333; font-size:0.9em;">
+<div class="row col-xs-12 col-md-12"><!-- Instructions -->
+<div class="panel panel-primary">
+<div class="panel-heading"><strong>Instructions</strong></div>
+
+<div class="panel-body">You will be given a sentence which (probably) expresses a relation between two boldfaced entities mentioned in the sentence. You will also be given a list of taboo words. For instance:<br />
+<strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Sentence:</strong> <strong>Dan</strong> was born in <strong>Boston</strong>.<br />
+<strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Relation:</strong> Dan <b>BornIn</b> Boston<br />
+<strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Taboo:</strong> not <br />
+Your job is to <strong>edit the sentence so that&nbsp;the relation between the two entities IS&nbsp;NOT expressed</strong>, while <strong>1) making as few changes as possible   </strong>, and <strong>2) not using any of the Taboo words</strong>. For example, you could write:<br />
+<strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Edited Sentence:</strong> <strong>Dan</strong>&nbsp;wishes&nbsp;he were born in&nbsp;<strong>Boston</strong>.<br />
+Guidelines: 1) Don&#39;t change the bolded entities. For example, don&#39;t change Dan to Sam or Boston to Seattle. 2) If the original sentence already does not express the relation, please write a new sentence, using the same entities, that also makes the relation false.</div>
+</div>
+
+<table>
+	<tbody>
+		<tr>
+			<td><label>Sentence</label></td>
+			<td id="tableSentence">&nbsp;</td>
+		</tr>
+		<tr>
+			<td><label>Relation</label></td>
+			<td id="tableRelation">&nbsp;</td>
+		</tr>
+		<tr>
+			<td><label>Taboo</label></td>
+			<td id="tableTaboo">&nbsp;</td>
+		</tr>
+	</tbody>
+</table>
+&nbsp;
+
+<div><label>Edited Sentence:</label><textarea class="form-control" id="new_sentence" name="new_sentence" rows="5" type="text"></textarea></div>
+</div>
+</section>
+<script type="text/javascript">
+
+function getQueryVariable(variable)
+{
+       var query = window.location.search.substring(1);
+       var vars = query.split("&");
+       for (var i=0;i<vars.length;i++) {
+               var pair = vars[i].split("=");
+               if(pair[0] == variable){return pair[1];}
+       }
+       return(false);
+}
+
+//var url = "https://floating-basin-2662.herokuapp.com/";
+var url = "https://cryptic-springs-85573.herokuapp.com/"
+//var url = "http://localhost:8000/";
+
+
+var assign_url = url + "/assign_next_question?";
+
+  var worker_id = getQueryVariable("workerId");
+  var worker_source = 'mturk';
+  //var task_id = '569ee15940f3884b06843205';
+  var task_id = '56b3c5595b9b0d000a4fc1ec';
+
+  var requester_id = '56b3c0ef5b9b0d00091fbeaa';
+  //var requester_id = '569ee11340f3884b06843204'; 
+  var preview = '';
+
+  console.log(getQueryVariable("assignmentId"));
+  if (getQueryVariable("assignmentId") === "ASSIGNMENT_ID_NOT_AVAILABLE") {
+      preview = 'True';
+  } else if (!getQueryVariable("assignmentId")){
+      preview = 'True';
+  } else {
+      preview = 'False';
+  }
+  var question_name = '';
+
+
+function validateForm() {
+    var x = document.getElementById('new_sentence').value;
+    if (x == null || x == "") {
+        alert("Your new sentence must not be empty");
+        return false;
+    }
+    if (x.toUpperCase().indexOf(entity1.toUpperCase()) <= -1) {
+	alert("The new sentence must contain the entity");
+	return false;
+    }
+    if (x.toUpperCase().indexOf(entity2.toUpperCase()) <= -1) {
+	alert("The new sentence must contain the entity");
+	return false;
+    }
+    list_of_taboo_words = taboo_words.split(';');
+    for (var i=0; i< list_of_taboo_words.length; i++) {
+	taboo_word = list_of_taboo_words[i];
+	if (taboo_word == "") {
+	    continue;
+	}
+	if (x.toUpperCase().indexOf(taboo_word.toUpperCase()) > -1) {
+	    alert("The new sentence must not contain: " + taboo_word);
+	    return false;
+	}	
+    }
+
+    var submit_answer_xmlhttp = new XMLHttpRequest();
+    var submit_answer_url = url + "/answers";
+    var submit_answer_request = {}
+    submit_answer_request['requester_id'] = requester_id;
+    submit_answer_request['task_id'] = task_id;
+    submit_answer_request['question_name'] = question_name;
+    submit_answer_request['worker_id'] = worker_id;
+    submit_answer_request['worker_source'] = worker_source;
+    submit_answer_request['value'] = x;
+
+    submit_answer_xmlhttp.open("PUT", submit_answer_url, false);
+    submit_answer_xmlhttp.setRequestHeader("Content-type",
+					   "application/json");
+    submit_answer_xmlhttp.send(JSON.stringify(submit_answer_request));
+
+    submit_answer_xmlhttp.onreadystatechange = function() {
+	console.log(submit_answer_xmlhttp.responseText);
+    }
+    
+}
+
+
+var entity1 = '';
+var entity2 = '';
+  var taboo_words = ''; 
+var questionNumber = '${questionNumber}';
+var xmlhttp = new XMLHttpRequest();
+
+
+xmlhttp.onreadystatechange = function() {
+    console.log(xmlhttp.responseText);
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+	var nextQuestion = JSON.parse(xmlhttp.responseText);
+	if ('error' in nextQuestion) {
+	    document.getElementById('tableSentence').innerHTML = 'Thank you! You have compelted all HITs available to you at this time. Please check back later!';
+	    document.getElementById('submitButton').setAttribute(
+		'onclick', 'return false;');
+	} else {
+	    var nextQuestionDetails = nextQuestion['question_name'];
+	    question_name = nextQuestionDetails;
+	    nextQuestionDetails = nextQuestionDetails.split('\t');
+	    var sentence = nextQuestionDetails[0];
+	    var sentence_bolded = nextQuestionDetails[1];
+	    console.log(sentence_bolded);
+	    entity1 = nextQuestionDetails[2];
+	    entity2 = nextQuestionDetails[3];
+	    var relation= nextQuestionDetails[4];
+	    taboo_words = nextQuestionDetails[5];
+	    
+	    document.getElementById('tableSentence').innerHTML = sentence_bolded;
+	    document.getElementById('tableRelation').innerHTML = entity1 + " <b>" + relation + "</b> " + entity2;
+	    document.getElementById('tableTaboo').innerHTML = taboo_words;
+	    
+	    document.getElementById('new_sentence').value = sentence;
+
+	}
+    }
+};
+
+
+  assign_url += 'worker_id='
+  assign_url += worker_id; 
+  assign_url += '&worker_source=mturk';
+  assign_url += '&task_id=';
+  assign_url += task_id;
+  assign_url += '&requester_id=';
+  assign_url += requester_id;
+  assign_url += '&preview=';
+  assign_url += preview;
+  assign_url += '&strategy=';
+  assign_url+= 'min_answers';
+
+  console.log("worker_id");
+  console.log(worker_id);
+  if (preview === "False") {
+      xmlhttp.open("GET", assign_url, true);
+      xmlhttp.send();
+  }
+
+
+window.onload = function() {document.getElementById('submitButton').setAttribute('onclick', 'return validateForm()');}
+</script>

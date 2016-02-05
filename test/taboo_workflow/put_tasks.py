@@ -6,10 +6,8 @@ import json
 
 
 def put_tasks(crowdjs_url, email, API_KEY, requester_id, answers_per_question,
-              threshold):
+              threshold, question_file):
     crowdjs_url += '/tasks'
-    #question_file = open('turkTrainingRandom50.csv', 'r')
-    question_file = open('turkTrainingRandom1.csv', 'r')
 
     task_name = "Relation Extraction Taboo"
     task_description = 'Creatively edit sentences so that they no longer express the given relation'
