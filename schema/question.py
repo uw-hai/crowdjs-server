@@ -1,7 +1,8 @@
 from app import db
 
 class Question(db.Document):
-    name = db.StringField(unique=True)
+    #Need to just make this unique across a single task.
+    name = db.StringField()
     description = db.StringField()
     #TODO allow storing arbitrary data (i.e. photo)
     data = db.StringField()
