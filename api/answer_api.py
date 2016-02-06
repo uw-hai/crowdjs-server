@@ -77,7 +77,8 @@ class AnswerListApi(Resource):
 
         requester = Requester.objects.get_or_404(id = requester_id)
         task = Task.objects.get_or_404(id = task_id)
-        question = Question.objects.get_or_404(name=question_name)
+        question = Question.objects.get_or_404(name = question_name,
+                                               task = task)
 
         if not str(question.task.id) == task_id:
             return "Sorry, your question and task are inconsistent"
