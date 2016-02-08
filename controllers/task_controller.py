@@ -10,7 +10,7 @@ class TaskController():
     Uses POMDPs to decide when questions are solved, min answers strategy (~round robin) for question assignment
     """
 
-    def __init__(self, question_ids, reward_incorrect, average_gamma, do_gamma_updates=True):
+    def __init__(self, question_ids, reward_incorrect, average_gamma, discount=0.9999, timeout=300, do_gamma_updates=True):
         # Parameters
         self.reward_incorrect = reward_incorrect
         self.average_gamma = average_gamma
@@ -19,8 +19,8 @@ class TaskController():
         # Constants
         self.reward_correct = 0
         self.reward_create = -1
-        self.discount = 0.99
-        self.timeout = 10 # seconds
+        self.discount = discount
+        self.timeout = timeout # seconds
         self.num_difficulty_bins = 11  # 0.0-1.0
         self.num_answer_choices = 2  # either 0 or 1
         self.num_states = 1 + self.num_difficulty_bins * self.num_answer_choices # includes terminal state
