@@ -10,13 +10,16 @@ class TestTabooWorkflow(unittest.TestCase):
 
     def setUp(self):
 
+        #NOTE: it doesn't make sense to test using this unless you've already
+        #pushed to heroku!!
         #self.crowdjs_url = 'http://floating-basin-2662.herokuapp.com'
+
         self.crowdjs_url = 'http://localhost:8000'
         self.email = 'dan@crowdlab.com'
         #self.API_KEY = 'WyI1NjhhZmU3NGRiOGY0ZjAwMDk2MTQxNjIiLCI0MjQ2MDRlZDQyYmQ4YTc0NWUxZWIxMmI1YzJmODdjMCJd.CYB1Hg.omn2MCltYW2oORhQUraq5el4O-U' #floating-basin
-        self.API_KEY = 'WyI1NmE4MjhjZTQwZjM4ODIyOWJhYjU3N2QiLCI1YzdmYTdiMzQxOTU2MzU4MThiNjJlNDY0MDFmNDk5MiJd.CZK5JA.4sDJAROM6vmImPuIEyuFUmErFuY' #localhost
+        self.API_KEY = 'WyI1NmI1MTVkZjQwZjM4ODExOTg4OTJlNzQiLCJlNDFmN2NjZThkODU3MjFmOWEyMDZiZThlNjI0MGZiYSJd.CZqjlg.XcTSNupic-zc-4VsDHa6Hc7yVjE' #localhost
         #self.requester_id = '568afe74db8f4f0009614162' #floating-basin
-        self.requester_id = '56a828ce40f388229bab577d' #localhost
+        self.requester_id = '56b515df40f3881198892e74' #localhost
 
         self.threshold = 2
         self.answers_per_question = 3
@@ -35,9 +38,10 @@ class TestTabooWorkflow(unittest.TestCase):
         
         #Now put in a new task
         print "INSERTING TASK"
+        question_file = open('data/turkTrainingRandom1.csv', 'r')
         (response, questions) = put_tasks(crowdjs_url, email,
                                           API_KEY, requester_id, 1,
-                                          self.threshold)
+                                          self.threshold, question_file)
         self.assertIn('task_id', response)
         task_id = response['task_id']
 
@@ -222,9 +226,10 @@ class TestTabooWorkflow(unittest.TestCase):
         
         #Now put in a new task
         print "INSERTING TASK"
+        question_file = open('data/turkTrainingRandom1.csv', 'r')
         (response, questions) = put_tasks(crowdjs_url, email,
                                           API_KEY, requester_id, 3,
-                                          self.threshold)
+                                          self.threshold, question_file)
         self.assertIn('task_id', response)
         task_id = response['task_id']
         
