@@ -1,4 +1,12 @@
 <!-- Bootstrap v3.0.3 -->
+<script type="text/javascript" src="https://cloudfront.loggly.com/js/loggly.tracker-2.1.min.js"></script>
+<script>
+    var _LTracker = _LTracker || [];
+    _LTracker.push({'logglyKey': '39edf32f-b8dd-4b0d-8694-5d151f6b2fff',
+    'sendConsoleErrors' : true,
+    'tag' : 'loggly-jslogger'  });
+</script>
+
 <link href="https://s3.amazonaws.com/mturk-public/bs30/css/bootstrap.min.css" rel="stylesheet" />
 <section class="container" id="DataCollection" style="margin-bottom:15px; padding: 10px 10px; font-family: Verdana, Geneva, sans-serif; color:#333333; font-size:0.9em;">
 <div class="row col-xs-12 col-md-12"><!-- Instructions -->
@@ -35,6 +43,8 @@ Guidelines: 1) Don&#39;t change the bolded entities. For example, don&#39;t chan
 <div><label>Edited Sentence:</label><textarea class="form-control" id="new_sentence" name="new_sentence" rows="5" type="text"></textarea></div>
 </div>
 </section>
+
+
 <script type="text/javascript">
 
 function getQueryVariable(variable)
