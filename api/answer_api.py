@@ -1,3 +1,5 @@
+from app import app
+from redis_util import *
 from flask.ext.restful import reqparse, abort, Api, Resource
 import flask.ext.restful.inputs
 from flask.ext.security import login_required, current_user, auth_token_required
@@ -105,7 +107,14 @@ class AnswerListApi(Resource):
                             worker = worker,
                             assign_time = None,
                             is_alive = is_alive)
+            #REDIS update
+            #this answer was not assigned by our system
+            #Hack, might have to update bookkeeping for every strategy here
+            app.redis.zincrby(redis_get_task_queue_var(task_id, 'min_answers'), question.name, 1)
+
         else:
+            #XXX assuming worker only assigned to particular question once?
+            assert len(answers) == 1
             answer = answers[0]
         
         answer.complete_time = datetime.datetime.now()
@@ -144,10 +153,14 @@ class AnswerListApi(Resource):
 
                 for new_question_document in new_question_documents:
                     new_question_document.save()
+
+                    #REDIS Update
+                    app.redis.zadd(redis_get_task_queue_var(task_id, 'min_answers'), 0, new_question_name)
                 task.data = new_task_data
                 task.save()
 
                 if not old_question_budget == None:
+                    #XXX What does this do?
                     question.answers_per_question = old_question_budget
                     question.save()
                 

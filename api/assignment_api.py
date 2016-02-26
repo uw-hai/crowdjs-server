@@ -1,3 +1,5 @@
+from app import app
+from redis_util import *
 from flask.ext.restful import reqparse, abort, Api, Resource
 import flask.ext.restful.inputs
 from flask.ext.security import login_required, current_user, auth_token_required
@@ -95,6 +97,11 @@ class NextQuestionApi(Resource):
                                           is_alive = True)
             
             answer.save()
+            #REDIS update
+            app.redis.sadd(redis_get_worker_assignments_var(task_id, worker_id), question.name)
+            #min_answers: increment priority of the question that was assigned
+            if strategy == 'min_answers':
+                app.redis.zincrby(redis_get_task_queue_var(task_id, strategy), question.name, 1)
         return {'question_name' : str(question.name)}
 
     ####
@@ -132,33 +139,91 @@ class NextQuestionApi(Resource):
         Assumes that task and worker IDs have been checked.
         """
 
-        task = schema.task.Task.objects.get_or_404(id=task_id)
-        # XXX join across Mongo documents yuck
-        # SQL equivalent:
-        # SELECT QUESTION_ID, COUNT(*) as num_answers FROM QUESTIONS q, ANSWERS a
-        # WHERE q.id = a.qid GROUP BY q.id ORDER BY num_answers
-
-        # Find first question with the fewest answers
-        # TODO tiebreaker
-        questions = schema.question.Question.objects(task=task)
-
-        #Filter out the questions that the worker has already
-        #answered
-        questions = filter(
-            lambda q:
-            len(schema.answer.Answer.objects(question=q, worker=worker,
-                                             status='Completed')) == 0,
-            questions)            
-        min_answers = float("inf") # +infinity
+        worker_id = worker.platform_id
         chosen_question = None
-        for question in questions:
 
-            answers = get_alive_answers(question)
-            if len(answers) >= question.answers_per_question:
-                continue
-            if len(answers) < min_answers:
-                chosen_question = question
-                min_answers = len(answers)
+        task_questions_var = redis_get_task_queue_var(task_id, 'min_answers')
+        worker_assignments_var = redis_get_worker_assignments_var(task_id, worker_id)
 
-        question = chosen_question
-        return question
+        print "true task questions from DB with # of assignments+completed answers:"
+        for q in schema.question.Question.objects(task=task_id):
+            print q.name, len(schema.answer.Answer.objects(question=q))
+        print "true worker assignments from DB (qname, value):"
+        for a in schema.answer.Answer.objects(worker=worker,task=task_id):
+            print a.question.name, a.value
+        task_questions = app.redis.zrange(task_questions_var, 0, -1)
+        print "REDIS TASK QUESTIONS LEN", len(task_questions)
+        for question in task_questions:
+            print question
+            if not app.redis.sismember(worker_assignments_var, question):
+                #TODO keep question budgets in a hashtable?
+                #Want to avoid DB queries in this loop
+                question_obj = schema.question.Question.objects.get(name=question)
+                if app.redis.zscore(task_questions_var, question) < question_obj.answers_per_question:
+                    #according to redis our budget has been exceeded
+                    print "choosing question= %s" % question
+                    chosen_question = question
+                    break
+                else:
+                    print "decided not to do question = %s because its budget is used up" % question
+            else:
+                print "worker %s has done question %s in task %s" % (worker_id, question, task_id)
+
+        if not chosen_question:
+            # Means the worker has completed every single question contained in this task queue
+            print "Uh oh, worker was not given an assignment"
+            #TODO dump data
+        redis_chosen_question=chosen_question
+        
+
+#       #THE OLD WAY
+#       ##################
+
+#       task = schema.task.Task.objects.get_or_404(id=task_id)
+
+#       #   if worker has not answered q, assign q. Done
+
+#       # XXX join across Mongo documents yuck
+#       # SQL equivalent:
+#       # SELECT QUESTION_ID, COUNT(*) as num_answers FROM QUESTIONS q, ANSWERS a
+#       # WHERE q.id = a.qid AND NOT Answers(w.id, q.id) GROUP BY q.id ORDER BY num_answers
+
+#       # query answers
+#       # filter out questions answered by W
+#       # for rest of qs, get counts of # answers
+#       # 
+#       # Find first question with the fewest answers
+#       # TODO tiebreaker
+#       questions = schema.question.Question.objects(task=task)
+
+#       #Filter out the questions that the worker has already
+#       #answered
+#       questions = filter(
+#           lambda q:
+#           len(schema.answer.Answer.objects(question=q, worker=worker,
+#                                            status='Completed')) == 0,
+#           questions)            
+#       min_answers = float("inf") # +infinity
+#       chosen_question = None
+#       for question in questions:
+
+#           answers = get_alive_answers(question)
+#           if len(answers) >= question.answers_per_question:
+#               continue
+#           if len(answers) < min_answers:
+#               chosen_question = question
+#               min_answers = len(answers)
+
+#       question = chosen_question
+#       try:
+#           print "old choice:", question.name
+#           print "redis choice:", redis_chosen_question
+#           assert redis_chosen_question == question.name
+#       except Exception as err:
+#           print err
+#           print "old q choice question:", question
+#           print "redis_chosen_question", redis_chosen_question
+        if redis_chosen_question is None:
+            return None
+        else:
+            return schema.question.Question.objects.get(name=redis_chosen_question)

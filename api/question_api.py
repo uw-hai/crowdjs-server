@@ -1,3 +1,5 @@
+from app import app
+from redis_util import *
 from flask.ext.restful import reqparse, abort, Api, Resource
 from flask.ext.security import login_required, current_user, auth_token_required
 import schema.question
@@ -92,6 +94,9 @@ class QuestionListApi(Resource):
             task = task, requester = requester)
 
         questionDocument.save()
+
+        #REDIS update add this question to the queue
+        app.redis.zadd(redis_get_task_queue_var(task_id, 'min_answers'), 0, question_name)
 
         return {'question_id' : str(questionDocument.id)}
 

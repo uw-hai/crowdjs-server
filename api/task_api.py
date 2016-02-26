@@ -1,3 +1,5 @@
+from app import app
+from redis_util import *
 import sys, traceback
 from flask import request
 from flask.ext.restful import reqparse, abort, Api, Resource
@@ -160,6 +162,9 @@ class TaskListApi(Resource):
         for questionDocument in questionDocuments:
             try:
                 questionDocument.save()
+                #REDIS update 
+                # -add this question to the queue
+                app.redis.zadd(redis_get_task_queue_var(task.id, 'min_answers'), 0, questionDocument.name)
             except Exception as err:
                 error_class = err.__class__.__name__
                 print error_class
