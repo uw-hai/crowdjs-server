@@ -16,6 +16,11 @@ ZMDP_ALIAS=zmdp
 ```
 APP_SETTINGS='config.Production'
 ```
+- Set up a Redis instance. For Heroku, follow the instructions on https://devcenter.heroku.com/articles/heroku-redis
+In your `.env` file, add:
+```
+REDIS_URL=redis://user:password@host:port
+```
 
 ## Additional configuration
 To set up Heroku environment to run ZMDP, add the following buildpacks, using the toolbelt command `heroku buildpacks:add` or equivalent:

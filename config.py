@@ -9,6 +9,8 @@ class Config(object):
     (dbpass, host) = dbpass_host.split('@')
     dbname = mongolab_uri[3]
 
+    REDIS_URL = os.environ['REDIS_URL']
+
     MONGODB_SETTINGS = {    
         'db': dbname,
         'host': host,

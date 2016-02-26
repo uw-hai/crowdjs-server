@@ -6,12 +6,15 @@ from flask.ext.restful import Api
 from flask.ext.security import Security, MongoEngineUserDatastore, login_required, login_user, current_user
 from flask.ext.security.registerable import register_user
 from flask.ext.mail import Mail
+import redis
 import uuid
 
 app = Flask(__name__)
 
 app.config.from_object(os.environ['APP_SETTINGS'])
 
+#TESTING REDIS
+app.redis = redis.StrictRedis.from_url(app.config['REDIS_URL'])
 db = MongoEngine(app)
 api = Api(app)
 
