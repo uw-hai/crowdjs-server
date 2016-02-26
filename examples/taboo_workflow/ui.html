@@ -26,7 +26,7 @@ Guidelines: 1) Don&#39;t change the bolded entities. For example, don&#39;t chan
 	<tbody>
 		<tr>
 			<td><label>Sentence</label></td>
-			<td id="tableSentence">&nbsp;</td>
+			<td id="tableSentence"> A sentence will appear here after you accept this HIT....it may take up to 10 seconds to appear.</td>
 		</tr>
 		<tr>
 			<td><label>Relation</label></td>
@@ -105,6 +105,8 @@ function validateForm() {
 	if (taboo_word == "") {
 	    continue;
 	}
+	taboo_word = " " + list_of_taboo_words[i] + " ";
+
 	if (x.toUpperCase().indexOf(taboo_word.toUpperCase()) > -1) {
 	    alert("The new sentence must not contain: " + taboo_word);
 	    return false;
@@ -149,7 +151,7 @@ xmlhttp.onreadystatechange = function() {
     if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 	var nextQuestion = JSON.parse(xmlhttp.responseText);
 	if ('error' in nextQuestion) {
-	    document.getElementById('tableSentence').innerHTML = 'Thank you! You have compelted all HITs available to you at this time. Please check back later!';
+	    document.getElementById('tableSentence').innerHTML = 'Thank you! You have completed all HITs available to you at this time. Please check back later!';
 	    document.getElementById('submitButton').setAttribute(
 		'onclick', 'return false;');
 	} else {
@@ -186,6 +188,7 @@ xmlhttp.onreadystatechange = function() {
   assign_url += preview;
   assign_url += '&strategy=';
   assign_url+= 'min_answers';
+  //assign_url+= 'random';
 
   console.log("worker_id");
   console.log(worker_id);
