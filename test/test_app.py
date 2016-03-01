@@ -14,9 +14,16 @@ def clear_db():
     schema.task.Task.objects().delete()
     schema.worker.Worker.objects().delete()
 
+def clear_redis():
+    """
+    Delete all keys from the Redis database.
+    """
+    app.redis.flushdb()
+
 class AppTestCase(unittest.TestCase):
     def setUp(self):
         clear_db()
+        clear_redis()
         self.app = app.test_client()
         
         with app.app_context():
@@ -1225,6 +1232,7 @@ class AppTestCase(unittest.TestCase):
         
     def tearDown(self):
         clear_db()
+        clear_redis()
 
 if __name__ == '__main__':
     unittest.main()
