@@ -17,9 +17,9 @@ class TestTabooWorkflow(unittest.TestCase):
         self.crowdjs_url = 'http://localhost:8000'
         self.email = 'dan@crowdlab.com'
         #self.API_KEY = 'WyI1NjhhZmU3NGRiOGY0ZjAwMDk2MTQxNjIiLCI0MjQ2MDRlZDQyYmQ4YTc0NWUxZWIxMmI1YzJmODdjMCJd.CYB1Hg.omn2MCltYW2oORhQUraq5el4O-U' #floating-basin
-        self.API_KEY = 'WyI1NmI1MTVkZjQwZjM4ODExOTg4OTJlNzQiLCJlNDFmN2NjZThkODU3MjFmOWEyMDZiZThlNjI0MGZiYSJd.CZqjlg.XcTSNupic-zc-4VsDHa6Hc7yVjE' #localhost
+        self.API_KEY = 'WyI1NmQ2Mjc0ZjQwZjM4ODExMzhmYWRjY2YiLCIyNjIxMjE3Y2VhNGYxMDUzMmM2ZGQyN2Q4NDUzZDExNiJd.Cbe44A._0wobgto_5VNjunY7AkuKiYgeCw' #localhost
         #self.requester_id = '568afe74db8f4f0009614162' #floating-basin
-        self.requester_id = '56b515df40f3881198892e74' #localhost
+        self.requester_id = '56d6274f40f3881138fadccf' #localhost
 
         self.threshold = 2
         self.answers_per_question = 3

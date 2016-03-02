@@ -59,8 +59,8 @@ def put_tasks(crowdjs_url, email, API_KEY, requester_id, answers_per_question,
             'questions' : questions}
     
 
-    print "Here is what is being sent"
-    print data
+    #print "Here is what is being sent"
+    #print data
     
     r = requests.put(crowdjs_url, headers=headers,
                      json=data)
