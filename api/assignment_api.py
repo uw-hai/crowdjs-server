@@ -12,7 +12,7 @@ import schema.answer
 import json
 import random
 from util import requester_token_match, requester_token_match_and_task_match, get_or_insert_worker, get_alive_answers, requester_task_match
-import sys
+import sys, traceback
 
 nextq_parser = reqparse.RequestParser()
 #TODO:
@@ -146,8 +146,13 @@ class NextQuestionApi(Resource):
         worker_assignments_var = redis_get_worker_assignments_var(task_id, worker_id)
 
         print "true task questions from DB with # of assignments+completed answers:"
-        for q in schema.question.Question.objects(task=task_id):
-            print q.name, len(schema.answer.Answer.objects(question=q))
+        try:
+            for q in schema.question.Question.objects(task=task_id):
+                print q.name, len(schema.answer.Answer.objects(question=q))
+        except:
+            traceback.print_exc(file=sys.stdout)
+            raise Exception
+        
         print "true worker assignments from DB (qname, value):"
         for a in schema.answer.Answer.objects(worker=worker,task=task_id):
             print a.question.name, a.value
