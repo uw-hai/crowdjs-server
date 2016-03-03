@@ -145,39 +145,27 @@ class NextQuestionApi(Resource):
         task_questions_var = redis_get_task_queue_var(task_id, 'min_answers')
         worker_assignments_var = redis_get_worker_assignments_var(task_id, worker_id)
 
-        print "true task questions from DB with # of assignments+completed answers:"
-        try:
-            for q in schema.question.Question.objects(task=task_id):
-                print q.name, len(schema.answer.Answer.objects(question=q))
-        except:
-            traceback.print_exc(file=sys.stdout)
-            raise Exception
+        #print "true task questions from DB with # of assignments+completed answers:"
+        #for q in schema.question.Question.objects(task=task_id):
+        #    print q.name, len(schema.answer.Answer.objects(question=q))
         
-        print "true worker assignments from DB (qname, value):"
-        for a in schema.answer.Answer.objects(worker=worker,task=task_id):
-            print a.question.name, a.value
+        #print "true worker assignments from DB (qname, value):"
+        #for a in schema.answer.Answer.objects(worker=worker,task=task_id):
+        #    print a.question.name, a.value
         task_questions = app.redis.zrange(task_questions_var, 0, -1)
         print "REDIS TASK QUESTIONS LEN", len(task_questions)
         for question in task_questions:
-            print question
+            #print question
             if not app.redis.sismember(worker_assignments_var, question):
                 #TODO keep question budgets in a hashtable?
                 #Want to avoid DB queries in this loop
                 question_obj = schema.question.Question.objects.get(name=question)
                 if app.redis.zscore(task_questions_var, question) < question_obj.answers_per_question:
                     #according to redis our budget has been exceeded
-                    print "choosing question= %s" % question
+                    #print "choosing question= %s" % question
                     chosen_question = question
                     break
-                else:
-                    print "decided not to do question = %s because its budget is used up" % question
-            else:
-                print "worker %s has done question %s in task %s" % (worker_id, question, task_id)
 
-        if not chosen_question:
-            # Means the worker has completed every single question contained in this task queue
-            print "Uh oh, worker was not given an assignment"
-            #TODO dump data
         redis_chosen_question=chosen_question
         
 
