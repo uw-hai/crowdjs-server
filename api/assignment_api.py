@@ -160,7 +160,9 @@ class NextQuestionApi(Resource):
                 if not app.redis.sismember(worker_assignments_var, question):
                     #TODO keep question budgets in a hashtable?
                     #Want to avoid DB queries in this loop
-                    question_obj = schema.question.Question.objects.get(name=question)
+                    question_obj = schema.question.Question.objects.get(
+                        task=task_id,
+                        name=question)
                     if app.redis.zscore(task_questions_var, question) < question_obj.answers_per_question:
                         #according to redis our budget has been exceeded
                         #print "choosing question= %s" % question
@@ -222,4 +224,6 @@ class NextQuestionApi(Resource):
         if redis_chosen_question is None:
             return None
         else:
-            return schema.question.Question.objects.get(name=redis_chosen_question)
+            return schema.question.Question.objects.get(
+                task=task_id,
+                name=redis_chosen_question)
