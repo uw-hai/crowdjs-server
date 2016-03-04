@@ -154,20 +154,23 @@ class NextQuestionApi(Resource):
         #    print a.question.name, a.value
         task_questions = app.redis.zrange(task_questions_var, 0, -1)
         print "REDIS TASK QUESTIONS LEN", len(task_questions)
-        for question in task_questions:
-            #print question
-            if not app.redis.sismember(worker_assignments_var, question):
-                #TODO keep question budgets in a hashtable?
-                #Want to avoid DB queries in this loop
-                question_obj = schema.question.Question.objects.get(name=question)
-                if app.redis.zscore(task_questions_var, question) < question_obj.answers_per_question:
-                    #according to redis our budget has been exceeded
-                    #print "choosing question= %s" % question
-                    chosen_question = question
-                    break
+        try:
+            for question in task_questions:
+                #print question
+                if not app.redis.sismember(worker_assignments_var, question):
+                    #TODO keep question budgets in a hashtable?
+                    #Want to avoid DB queries in this loop
+                    question_obj = schema.question.Question.objects.get(name=question)
+                    if app.redis.zscore(task_questions_var, question) < question_obj.answers_per_question:
+                        #according to redis our budget has been exceeded
+                        #print "choosing question= %s" % question
+                        chosen_question = question
+                        break
 
-        redis_chosen_question=chosen_question
-        
+                redis_chosen_question=chosen_question
+        except:
+            traceback.print_exc(file=sys.stdout)
+            raise
 
 #       #THE OLD WAY
 #       ##################
