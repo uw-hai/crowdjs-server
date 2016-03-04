@@ -141,6 +141,7 @@ class NextQuestionApi(Resource):
 
         worker_id = worker.platform_id
         chosen_question = None
+        task = schema.task.Task.objects.get_or_404(id=task_id)
 
         task_questions_var = redis_get_task_queue_var(task_id, 'min_answers')
         worker_assignments_var = redis_get_worker_assignments_var(task_id, worker_id)
@@ -161,7 +162,7 @@ class NextQuestionApi(Resource):
                     #TODO keep question budgets in a hashtable?
                     #Want to avoid DB queries in this loop
                     question_obj = schema.question.Question.objects.get(
-                        task=task_id,
+                        task=task,
                         name=question)
                     if app.redis.zscore(task_questions_var, question) < question_obj.answers_per_question:
                         #according to redis our budget has been exceeded
@@ -177,7 +178,6 @@ class NextQuestionApi(Resource):
 #       #THE OLD WAY
 #       ##################
 
-#       task = schema.task.Task.objects.get_or_404(id=task_id)
 
 #       #   if worker has not answered q, assign q. Done
 
@@ -225,5 +225,5 @@ class NextQuestionApi(Resource):
             return None
         else:
             return schema.question.Question.objects.get(
-                task=task_id,
+                task=task,
                 name=redis_chosen_question)
