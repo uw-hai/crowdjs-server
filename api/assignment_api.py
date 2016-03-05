@@ -77,7 +77,11 @@ class NextQuestionApi(Resource):
             return {'error' : 'The total task budget has been reached'}
         
         if strategy == 'min_answers':
-            question = self.min_answers(task_id, worker)
+            try:
+                question = self.min_answers(task_id, worker)
+            except:
+                traceback.print_exc(file=sys.stdout)
+                raise
         elif strategy == 'random':
             question = self.random_choice(task_id, worker)
         else:
