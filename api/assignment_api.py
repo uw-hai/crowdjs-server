@@ -172,7 +172,8 @@ class NextQuestionApi(Resource):
                     print question
                     print task
                     traceback.print_exc(file=sys.stdout)
-                    
+                    raise
+                
                 if app.redis.zscore(task_questions_var, question) < question_obj.answers_per_question:
                     #according to redis our budget has been exceeded
                     #print "choosing question= %s" % question
