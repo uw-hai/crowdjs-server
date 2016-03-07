@@ -3,12 +3,10 @@
 ###
 import pickle
 import nltk
+import string
 
 nltk.download('punkt')
 nltk.download('stopwords')
-
-print "OLD QUESTION BEING PARSED"
-sys.stdout.flush()
     
 old_question = question
 old_question_name = question.name
@@ -20,10 +18,10 @@ old_question_name = question.name
 old_question_data = question.data
 old_question_description = question.description
 
-new_sentence = answer.value
+#sentence = sentence.translate(None, string.punctuation)
 
-print "LOADING OLD TASK DATA"
-sys.stdout.flush()
+new_sentence = answer.value
+#new_sentence = new_sentence.translate(None, string.punctuation)
 
 task_data = pickle.loads(task.data)
 
@@ -41,12 +39,13 @@ tokenized_old_sentence = nltk.word_tokenize(sentence.lower())
 tokenized_new_sentence = nltk.word_tokenize(new_sentence.lower())
 
 new_taboo_words = set(tokenized_new_sentence) - set(tokenized_old_sentence)
-print new_taboo_words
 new_taboo_words = new_taboo_words - set(nltk.corpus.stopwords.words('english'))
-print new_taboo_words
 
 #Add the new taboo words to the existing taboo words
+#and only add it if it's greater than or equal to 3 characters.
 for new_taboo_word in new_taboo_words:
+    if len(new_taboo_word) < 3:
+        continue
     if not new_taboo_word in task_data:
         task_data[new_taboo_word] = 1
     else:
@@ -61,7 +60,6 @@ for word in task_data.keys():
 #new_taboo_words = new_taboo_words | task_data
 
 print new_taboo_words_list
-print task_data
 sys.stdout.flush()
 
 #Save the new taboo words to the task
@@ -81,9 +79,6 @@ if len(new_taboo_words_list) != len(old_taboo_words_list):
     new_data = (sentence, sentence_bolded, entity1, entity2,
                 relation, new_taboo_words_string, int(lineNumber))
     
-    print new_data
-    sys.stdout.flush()
-
     new_question_name =  "%s\t%s\t%s\t%s\t%s\t%s\t%d" % new_data
 
     new_questions.append({'name' : new_question_name,
