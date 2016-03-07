@@ -141,6 +141,11 @@ class AnswerListApi(Resource):
                     new_question_requester = new_question_def['requester']
                     new_question_apq = new_question_def[
                         'answers_per_question']
+
+                    #If the question already exists, do not add it
+                    if len(Question.objects(task=task,
+                                            name=new_question_name)) > 0:
+                        continue
                     
                     new_question = Question(
                         name = new_question_name,
@@ -149,6 +154,8 @@ class AnswerListApi(Resource):
                         task = new_question_task,
                         requester = new_question_requester,
                         answers_per_question = new_question_apq)
+                    
+
                     new_question_documents.append(new_question)
 
                 for new_question_document in new_question_documents:
@@ -160,7 +167,9 @@ class AnswerListApi(Resource):
                 task.save()
 
                 if not old_question_budget == None:
-                    #XXX What does this do?
+                    #Set the answers_per_question of the old question
+                    #to something specified in the callback. This
+                    #allows you to turn off the old question.
                     question.answers_per_question = old_question_budget
                     question.save()
                 

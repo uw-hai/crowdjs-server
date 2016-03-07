@@ -850,7 +850,29 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(num_questions+1, len(schema.question.Question.objects))
         self.assertEqual('cheese',
                          schema.task.Task.objects(id=gac_task_id)[0].data)
-        
+
+        gac_task_questions = schema.question.Question.objects(task=gac_task_id)
+        self.assertEqual(len(gac_task_questions), 2)
+
+        #Try putting in another answer. This should not cause a new
+        #question to be created because one already exists with the same
+        #name
+        test_answer2 = dict(question_name=test_gac_question_name,
+                           requester_id = str(self.test_requester.id),
+                           task_id = gac_task_id,
+                           worker_id='hippo',
+                           worker_source=test_worker_source,
+                           value="love")        
+
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(200, rv.status_code)
+        get_answer = json.loads(rv.data)
+        self.assertEqual(get_answer['value'], 'love')
+        self.assertEqual(num_questions+1, len(schema.question.Question.objects))
+        self.assertEqual('cheese',
+                         schema.task.Task.objects(id=gac_task_id)[0].data)
+
         gac_task_questions = schema.question.Question.objects(task=gac_task_id)
         self.assertEqual(len(gac_task_questions), 2)
 
