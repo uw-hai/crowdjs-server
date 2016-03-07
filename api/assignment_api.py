@@ -77,11 +77,7 @@ class NextQuestionApi(Resource):
             return {'error' : 'The total task budget has been reached'}
         
         if strategy == 'min_answers':
-            try:
-                question = self.min_answers(task_id, worker)
-            except:
-                traceback.print_exc(file=sys.stdout)
-                raise
+            question = self.min_answers(task_id, worker)
         elif strategy == 'random':
             question = self.random_choice(task_id, worker)
         else:
@@ -164,15 +160,10 @@ class NextQuestionApi(Resource):
             if not app.redis.sismember(worker_assignments_var, question):
                 #TODO keep question budgets in a hashtable?
                 #Want to avoid DB queries in this loop
-                try:
-                    question_obj = schema.question.Question.objects.get(
-                        task=task,
-                        name=question)
-                except:
-                    print question
-                    print task
-                    traceback.print_exc(file=sys.stdout)
-                    raise
+
+                question_obj = schema.question.Question.objects.get(
+                    task=task,
+                    name=question)
                 
                 if app.redis.zscore(task_questions_var, question) < question_obj.answers_per_question:
                     #according to redis our budget has been exceeded

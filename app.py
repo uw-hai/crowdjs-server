@@ -22,7 +22,6 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 cors = CORS(app, resources={"/assign_next_question": {"origins": "*"},
                             "/answers":  {"origins": "*"}})
 
-#cors = CORS(app, allow_headers='Content-Type')
 
 import schema.requester
 import schema.question
@@ -40,6 +39,14 @@ user_datastore = MongoEngineUserDatastore(db, schema.requester.Requester,
 security = Security(app, user_datastore)
 print "Done loading security datastore. Ready to serve pages."
 sys.stdout.flush()
+
+@app.before_first_request
+def setup_logging():
+    if not app.debug:   
+        import logging
+        app.logger.addHandler(logging.StreamHandler())
+        app.logger.setLevel(logging.ERROR)
+
 
 @app.before_first_request
 def add_test_users():
