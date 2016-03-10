@@ -9,17 +9,19 @@ import unittest
 class TestTabooWorkflow(unittest.TestCase):
 
     def setUp(self):
+        # Load configuration file
+        with open('config.json') as json_config_file:
+            config = json.load(json_config_file)
 
-        #NOTE: it doesn't make sense to test using this unless you've already
-        #pushed to heroku!!
-        #self.crowdjs_url = 'http://floating-basin-2662.herokuapp.com'
+        self.crowdjs_url = config['crowdjs_url']
+        self.email = config['test_requester_email']
+        self.password = config['test_requester_password']
 
-        self.crowdjs_url = 'http://localhost:8000'
-        self.email = 'dan@crowdlab.com'
-        #self.API_KEY = 'WyI1NjhhZmU3NGRiOGY0ZjAwMDk2MTQxNjIiLCI0MjQ2MDRlZDQyYmQ4YTc0NWUxZWIxMmI1YzJmODdjMCJd.CYB1Hg.omn2MCltYW2oORhQUraq5el4O-U' #floating-basin
-        self.API_KEY = 'WyI1NmRkZjc2MDQwZjM4ODIwOWE2Y2U3YWIiLCJlM2I5N2EyZGU5ODc4ZDRjZTViYjUwN2RmZGMzYWI2NCJd.Cb-I6A.47mRox3pVCj9OG6efy6Zizx_JtU' #localhost
-        #self.requester_id = '568afe74db8f4f0009614162' #floating-basin
-        self.requester_id = '56ddf76040f388209a6ce7ab' #localhost
+        # Get requester's ID and API token
+        r = requests.get(self.crowdjs_url + '/token', auth=(self.email, self.password))
+        data = r.json()
+        self.requester_id = data['requester_id']
+        self.API_KEY = data['auth_token']
 
         self.threshold = 2
         self.answers_per_question = 3
