@@ -39,7 +39,12 @@ To set up Heroku environment to run ZMDP, add the following buildpacks, using th
 
 ## Usage
 - First, create an account and login by going to `server_url/register` and `server_url/login`. You will receive an API Token as well as a requester_id.
-- Next, make a PUT request to `server_url/tasks` to insert your task (consisting of 1 or more questions) into the database. This step requires your credentials. When inserting a task, you can include a function that will be called every time an answer is submitted. You can use this function to create new questions and remove old questions. Keep in mind this function will always be called, unless you specify otherwise, even if the answer submitted is for a question that has already been removed. See the documentation for more details.
+- Next, make a PUT request to `server_url/tasks` to insert your task (consisting of 1 or more questions) into the database. This step requires your credentials.
 - To query the next question a worker should answer, make a GET request to `server_url/assign_next_question`.
 - To insert an answer into the database, make a PUT request to `server_url/answers`.
 - See the documentation for more details about how to make the requests.
+
+
+## Workflow Management
+- When inserting a task, you may include a function (as a string) that will be called every time an answer is submitted by a worker. You can use this function to create new questions and remove old questions. Keep in mind this function will always be called, unless you specify otherwise (when making a put request to `/answers`), even if the answer submitted is for a question that has already been removed.
+- Inside this function, the function may modify two variables: `new_questions`, which is a python list that contains a list of new questions you want added to your task, and `old_question_budget`, an integer that you can set that allows you to mutate the budget of the question that was just answered. (Setting it to 0 effectively prevents workers from seeing this question).
