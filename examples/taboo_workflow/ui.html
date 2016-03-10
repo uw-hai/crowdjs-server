@@ -105,6 +105,18 @@ function validateForm() {
 	if (taboo_word == "") {
 	    continue;
 	}
+	if (taboo_word.toUpperCase() == entity1.toUpperCase()) {
+	    continue;
+	}
+	if (entity1.toUpperCase().indexOf(taboo_word.toUpperCase()) > -1) {
+	    continue;
+	}
+	if (taboo_word.toUpperCase() == entity2.toUpperCase()) {
+	    continue;
+	}
+	if (entity2.toUpperCase().indexOf(taboo_word.toUpperCase()) > -1) {
+	    continue;
+	}
 	taboo_word = " " + list_of_taboo_words[i] + " ";
 
 	if (x.toUpperCase().indexOf(taboo_word.toUpperCase()) > -1) {

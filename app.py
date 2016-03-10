@@ -147,6 +147,7 @@ api.add_resource(TaskListApi, '/tasks')
 api.add_resource(TaskQuestionsApi, '/tasks/<task_id>/questions') #UNSECURED
 api.add_resource(TaskSetBudget, '/tasks/set_budget')
 api.add_resource(TaskDelete, '/tasks/delete')
+api.add_resource(TaskClearRedis, '/tasks/clearredis') #SHOULD ONLY BE ALLOWED FOR ADMIN
 
 
 from api.worker_api import *

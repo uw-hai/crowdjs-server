@@ -2,6 +2,7 @@ import traceback
 import unittest
 import schema
 from app import app, db, user_datastore
+from redis_util import redis_get_worker_assignments_var, redis_get_task_queue_var
 from flask.ext.security.registerable import register_user
 import uuid
 import json
@@ -720,7 +721,64 @@ class AppTestCase(unittest.TestCase):
         ret_data = json.loads(rv.data)
         self.assertEqual(2, len(ret_data))
 
+        #############
+        # Test clearing redis cache
+        #############
 
+        task_queue_var = redis_get_task_queue_var(task_id2,
+                                                  'min_answers')
+        task_queue = app.redis.zrange(task_queue_var, 0, -1)
+        self.assertEqual(1, len(task_queue))
+
+        task_queue_var = redis_get_task_queue_var(task_id,
+                                                  'min_answers')
+        task_queue = app.redis.zrange(task_queue_var, 0, -1)
+        self.assertEqual(2, len(task_queue))
+
+
+        total_workers_assignments = 0
+        for worker in schema.worker.Worker.objects():
+            total_workers_assignments += app.redis.scard(
+                redis_get_worker_assignments_var(task_id2, worker.platform_id))
+        self.assertEqual(0, total_workers_assignments)
+
+        total_workers_assignments = 0
+        for worker in schema.worker.Worker.objects():
+            total_workers_assignments += app.redis.scard(
+                redis_get_worker_assignments_var(task_id, worker.platform_id))
+        self.assertEqual(4, total_workers_assignments)
+            
+
+        del_request = dict(requester_id=str(self.test_requester.id),
+                           task_id = task_id)
+        rv = self.app.post('tasks/clearredis',
+                      content_type='application/json',
+                      headers={'Authentication-Token':
+                               self.test_requester_api_key},
+                      data=json.dumps(del_request))
+        self.assertEqual(200, rv.status_code)
+        print rv.data
+
+        task_queue_var = redis_get_task_queue_var(task_id,
+                                                  'min_answers')
+        task_queue = app.redis.zrange(task_queue_var, 0, -1)
+        self.assertEqual(0, len(task_queue))
+        
+        task_queue_var = redis_get_task_queue_var(task_id2,
+                                                  'min_answers')
+        task_queue = app.redis.zrange(task_queue_var, 0, -1)
+        self.assertEqual(1, len(task_queue))
+
+        total_workers_assignments = 0
+        for worker in schema.worker.Worker.objects():
+            total_workers_assignments += app.redis.scard(redis_get_worker_assignments_var(task_id2, worker.platform_id))
+        self.assertEqual(0, total_workers_assignments)
+
+        total_workers_assignments = 0
+        for worker in schema.worker.Worker.objects():
+            total_workers_assignments += app.redis.scard(redis_get_worker_assignments_var(task_id, worker.platform_id))
+        self.assertEqual(0, total_workers_assignments)
+            
         ##########
         # TEST DELETING TASKS
         ##########
@@ -764,20 +822,8 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(0, len(schema.answer.Answer.objects()))
 
 
-        #rv = self.app.get('/workers')
-        #print rv.data
 
-        #rv = self.app.get('/workers/%s' % test_worker_id)
-        #print rv.data
 
-        #rv = self.app.get('/workers/%s/answers' % test_worker_id)
-        #print rv.data
-
-        rv = self.app.get('/tasks/%s/questions' % task_id)
-        #print rv.data
-
-        rv = self.app.get('/questions/%s/answers' % test_question3_id)
-        #print rv.data
 
 
         #############

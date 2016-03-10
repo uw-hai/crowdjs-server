@@ -1,5 +1,5 @@
 from app import app
-from redis_util import *
+from redis_util import redis_get_worker_assignments_var, redis_get_task_queue_var
 import sys, traceback
 from flask import request
 from flask.ext.restful import reqparse, abort, Api, Resource
@@ -8,11 +8,11 @@ from schema.answer import Answer
 from schema.question import Question
 from schema.task import Task
 from schema.requester import Requester
+from schema.worker import Worker
 from flask.json import jsonify
-from util import requester_token_match, requester_token_match_and_task_match
+from util import requester_token_match, requester_token_match_and_task_match, clear_task_from_redis
 import json
 import datetime
-from app import app
 
 task_parser = reqparse.RequestParser()
 task_parser.add_argument('requester_id', type=str, required=True)
@@ -41,6 +41,12 @@ set_budget_parser.add_argument('total_task_budget', type=int, required=False)
 delete_task_parser = reqparse.RequestParser()
 delete_task_parser.add_argument('requester_id', type=str, required=True)
 delete_task_parser.add_argument('task_id', type=str, required=False)
+
+
+clear_redis_parser = reqparse.RequestParser()
+clear_redis_parser.add_argument('requester_id', type=str, required=True)
+clear_redis_parser.add_argument('task_id', type=str, required=False)
+
 
 
 
@@ -274,3 +280,43 @@ class TaskDelete(Resource):
                 
             return {'success' :
                     'All tasks for requester %s deleted!' % requester_id}
+
+
+class TaskClearRedis(Resource):
+
+    #This should eventually only be allowed to administrators.
+    @auth_token_required
+    def post(self):
+
+        args = clear_redis_parser.parse_args()
+
+        requester_id = args['requester_id']
+        task_id = args['task_id']
+        
+        if task_id:
+            if not requester_token_match_and_task_match(requester_id, task_id):
+                return {'error' : 'Sorry, you cannot clear redis for this task'}
+
+            (num_questions_deleted,
+             worker_assignments_deleted) = clear_task_from_redis(task_id)
+                
+            return {'success' : 'Task %s cleared from redis! %d questions removed from queue and %d worker assignment sets removed.' % (
+                task_id, num_questions_deleted, worker_assignments_deleted) }
+
+        else:
+            requester = Requester.objects.get_or_404(id = requester_id)
+            tasks = Task.objects(requester = requester)
+
+            total_questions_deleted = 0
+            total_assignments_deleted = 0
+            
+            for task in tasks:
+                (num_questions_deleted,
+                 worker_assignments_deleted) = clear_task_from_redis(task.id)
+                total_questions_deleted += num_questions_deleted
+                total_assignments_deleted += worker_assignments_deleted
+            return {
+                'success' :
+                'All tasks for requester %s cleared from redis! %d questions removed from queue and %d worker assignment sets removed.' % (
+                    requester_id,
+                    total_questions_deleted, total_assignments_deleted)}

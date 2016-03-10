@@ -160,7 +160,7 @@ class NextQuestionApi(Resource):
             if not app.redis.sismember(worker_assignments_var, question):
                 #TODO keep question budgets in a hashtable?
                 #Want to avoid DB queries in this loop
-
+                print question
                 question_obj = schema.question.Question.objects.get(
                     task=task,
                     name=question)
