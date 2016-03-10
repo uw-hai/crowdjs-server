@@ -3,7 +3,7 @@ from flask import Flask
 from flask.ext.cors import CORS
 from flask.ext.mongoengine import MongoEngine
 from flask.ext.restful import Api
-from flask.ext.security import Security, MongoEngineUserDatastore, login_required, login_user, current_user
+from flask.ext.security import Security, MongoEngineUserDatastore, login_required, login_user, current_user, http_auth_required
 from flask.ext.security.registerable import register_user
 from flask.ext.mail import Mail
 import redis
@@ -80,12 +80,16 @@ def hello():
         return "Hello World! You're not logged in, must be testing"
 
 @app.route('/token')
-@login_required
+@http_auth_required
 def give_me_my_token():
     """
     Requester needs to save this auth token in order to use the API.
     """
-    return current_user.get_auth_token()
+    requester = schema.requester.Requester.objects.get_or_404(email=current_user.email)
+    print requester.id
+    print current_user.get_auth_token()
+    return flask.jsonify(requester_id=str(requester.id),
+            auth_token=str(current_user.get_auth_token()))
 
 @app.route('/logout')
 @login_required
