@@ -77,10 +77,10 @@ class AnswerListApi(Resource):
         is_alive = args['is_alive']
         call_gac = args['call_gac']
 
-        requester = Requester.objects.get_or_404(id = requester_id)
-        task = Task.objects.get_or_404(id = task_id)
-        question = Question.objects.get_or_404(name = question_name,
-                                               task = task)
+        requester = Requester.objects.get(id = requester_id)
+        task = Task.objects.get(id = task_id)
+        question = Question.objects.get(name = question_name,
+                                        task = task)
 
         if not str(question.task.id) == task_id:
             return "Sorry, your question and task are inconsistent"
