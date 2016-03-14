@@ -55,11 +55,11 @@ class NextQuestionApi(Resource):
         task = schema.task.Task.objects.get_or_404(id=task_id)
         requester = schema.requester.Requester.objects.get_or_404(
             id=requester_id)
-        worker_id = args['worker_id']
+        worker_platform_id = args['worker_id']
         worker_source = args['worker_source']
 
         sys.stdout.flush()
-        worker = get_or_insert_worker(worker_id, worker_source)
+        worker = get_or_insert_worker(worker_platform_id, worker_source)
         if worker == None:
             return "You have not entered a valid worker source. It must be one of: [mturk,] "
 
@@ -98,7 +98,7 @@ class NextQuestionApi(Resource):
             
             answer.save()
             #REDIS update
-            app.redis.sadd(redis_get_worker_assignments_var(task_id, worker_id), str(question.id))
+            app.redis.sadd(redis_get_worker_assignments_var(task_id, worker.id), str(question.id))
             #min_answers: increment priority of the question that was assigned
             if strategy == 'min_answers':
                 app.redis.zincrby(redis_get_task_queue_var(task_id, strategy), str(question.id), 1)
@@ -139,7 +139,7 @@ class NextQuestionApi(Resource):
         Assumes that task and worker IDs have been checked.
         """
 
-        worker_id = worker.platform_id
+        worker_id = worker.id
         chosen_question = None
         task = schema.task.Task.objects.get_or_404(id=task_id)
 

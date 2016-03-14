@@ -739,13 +739,13 @@ class AppTestCase(unittest.TestCase):
         total_workers_assignments = 0
         for worker in schema.worker.Worker.objects():
             total_workers_assignments += app.redis.scard(
-                redis_get_worker_assignments_var(task_id2, worker.platform_id))
+                redis_get_worker_assignments_var(task_id2, worker.id))
         self.assertEqual(0, total_workers_assignments)
 
         total_workers_assignments = 0
         for worker in schema.worker.Worker.objects():
             total_workers_assignments += app.redis.scard(
-                redis_get_worker_assignments_var(task_id, worker.platform_id))
+                redis_get_worker_assignments_var(task_id, worker.id))
         self.assertEqual(4, total_workers_assignments)
             
 
@@ -771,12 +771,12 @@ class AppTestCase(unittest.TestCase):
 
         total_workers_assignments = 0
         for worker in schema.worker.Worker.objects():
-            total_workers_assignments += app.redis.scard(redis_get_worker_assignments_var(task_id2, worker.platform_id))
+            total_workers_assignments += app.redis.scard(redis_get_worker_assignments_var(task_id2, worker.id))
         self.assertEqual(0, total_workers_assignments)
 
         total_workers_assignments = 0
         for worker in schema.worker.Worker.objects():
-            total_workers_assignments += app.redis.scard(redis_get_worker_assignments_var(task_id, worker.platform_id))
+            total_workers_assignments += app.redis.scard(redis_get_worker_assignments_var(task_id, worker.id))
         self.assertEqual(0, total_workers_assignments)
             
         ##########

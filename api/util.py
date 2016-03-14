@@ -57,7 +57,7 @@ def clear_task_from_redis(task_id):
     worker_assignments_deleted = 0
     for worker in Worker.objects():
         worker_assignments_var = redis_get_worker_assignments_var(
-            task_id, worker.platform_id)
+            task_id, worker.id)
         worker_assignments_deleted += app.redis.delete(
             worker_assignments_var)
         

@@ -71,7 +71,7 @@ class AnswerListApi(Resource):
 
 
         question_name = args['question_name']
-        worker_id = args['worker_id']
+        worker_platform_id = args['worker_id']
         worker_source = args['worker_source']
         value = args['value']
         is_alive = args['is_alive']
@@ -86,7 +86,7 @@ class AnswerListApi(Resource):
             return "Sorry, your question and task are inconsistent"
             
         
-        worker = get_or_insert_worker(worker_id, worker_source)
+        worker = get_or_insert_worker(worker_platform_id, worker_source)
         if worker == None:
             return "You have not entered a valid worker source. It must be one of: [mturk,] "
         
