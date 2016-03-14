@@ -69,7 +69,8 @@ class NextQuestionApi(Resource):
             status = 'Assigned')
 
         if len(current_assignment) == 1:
-            return {'question_name' : current_assignment[0].question.name}
+            return {'question_name' : current_assignment[0].question.name,
+                    'question_id': str(current_assignment[0].question.id)}
 
         #If the task budget has been reached, then make no more assignemnts
         if (len(schema.answer.Answer.objects(task=task, is_alive=True)) >=
@@ -102,7 +103,8 @@ class NextQuestionApi(Resource):
             #min_answers: increment priority of the question that was assigned
             if strategy == 'min_answers':
                 app.redis.zincrby(redis_get_task_queue_var(task_id, strategy), str(question.id), 1)
-        return {'question_name' : str(question.name)}
+        return {'question_name' : str(question.name),
+                'question_id' : str(question.id)}
 
     ####
     # NOT FULLY TESTED
