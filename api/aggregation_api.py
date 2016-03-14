@@ -30,7 +30,7 @@ class AnswerAggregationApi(Resource):
         question.inference_results[strategy] = aggregated_answer
         question.save()
 
-        return {'question_id': str(question.name),
+        return {'question_id': str(question.id),
                 'aggregated_answer': str(aggregated_answer)}
 
     def aggregated_answer(self, question, strategy):
