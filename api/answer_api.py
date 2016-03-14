@@ -110,7 +110,7 @@ class AnswerListApi(Resource):
             #REDIS update
             #this answer was not assigned by our system
             #Hack, might have to update bookkeeping for every strategy here
-            app.redis.zincrby(redis_get_task_queue_var(task_id, 'min_answers'), question.name, 1)
+            app.redis.zincrby(redis_get_task_queue_var(task_id, 'min_answers'), str(question.id), 1)
 
         else:
             #XXX assuming worker only assigned to particular question once?
@@ -122,7 +122,7 @@ class AnswerListApi(Resource):
         answer.status = 'Completed'
 
         answer.save()
-        
+
         #Now run any code that the requester specified.
         if (not task.global_answer_callback == None and
             call_gac):
@@ -162,7 +162,7 @@ class AnswerListApi(Resource):
                     new_question_document.save()
 
                     #REDIS Update
-                    app.redis.zadd(redis_get_task_queue_var(task_id, 'min_answers'), 0, new_question_name)
+                    app.redis.zadd(redis_get_task_queue_var(task_id, 'min_answers'), 0, str(new_question_document.id))
                 task.data = new_task_data
                 task.save()
 

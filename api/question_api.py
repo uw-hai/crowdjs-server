@@ -96,7 +96,7 @@ class QuestionListApi(Resource):
         questionDocument.save()
 
         #REDIS update add this question to the queue
-        app.redis.zadd(redis_get_task_queue_var(task_id, 'min_answers'), 0, question_name)
+        app.redis.zadd(redis_get_task_queue_var(task_id, 'min_answers'), 0, str(questionDocument.id))
 
         return {'question_id' : str(questionDocument.id)}
 

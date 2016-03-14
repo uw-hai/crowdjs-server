@@ -98,10 +98,10 @@ class NextQuestionApi(Resource):
             
             answer.save()
             #REDIS update
-            app.redis.sadd(redis_get_worker_assignments_var(task_id, worker_id), question.name)
+            app.redis.sadd(redis_get_worker_assignments_var(task_id, worker_id), str(question.id))
             #min_answers: increment priority of the question that was assigned
             if strategy == 'min_answers':
-                app.redis.zincrby(redis_get_task_queue_var(task_id, strategy), question.name, 1)
+                app.redis.zincrby(redis_get_task_queue_var(task_id, strategy), str(question.id), 1)
         return {'question_name' : str(question.name)}
 
     ####
@@ -162,8 +162,7 @@ class NextQuestionApi(Resource):
                 #Want to avoid DB queries in this loop
                 print question
                 question_obj = schema.question.Question.objects.get(
-                    task=task,
-                    name=question)
+                    id=question)
                 
                 if app.redis.zscore(task_questions_var, question) < question_obj.answers_per_question:
                     #according to redis our budget has been exceeded
@@ -223,5 +222,4 @@ class NextQuestionApi(Resource):
             return None
         else:
             return schema.question.Question.objects.get(
-                task=task,
-                name=redis_chosen_question)
+                id=redis_chosen_question)

@@ -170,7 +170,7 @@ class TaskListApi(Resource):
                 questionDocument.save()
                 #REDIS update 
                 # -add this question to the queue
-                app.redis.zadd(redis_get_task_queue_var(task.id, 'min_answers'), 0, questionDocument.name)
+                app.redis.zadd(redis_get_task_queue_var(task.id, 'min_answers'), 0, str(questionDocument.id))
             except Exception as err:
                 error_class = err.__class__.__name__
                 print error_class
