@@ -140,6 +140,8 @@ api.add_resource(NextQuestionApi, '/assign_next_question') #DOES NOT REQUIRE SEC
 #TODO not implemented yet
 from api.aggregation_api import *
 api.add_resource(AnswerAggregationApi, '/aggregated_answer') #UNSECURED
+api.add_resource(TaskAggregationApi, '/tasks/<task_id>/aggregate',
+                                     '/tasks/<task_id>/aggregate/<job_id>')
 
 from api.answer_api import *
 api.add_resource(AnswerApi, '/answers/<answer_id>') #UNSECURED
