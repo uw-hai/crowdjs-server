@@ -78,8 +78,8 @@ def load_answer(data):
 
 
 #XXX systematic way to save IDs: return from each load_X() function
-requester1 = load_requester(dict(email = "sethv1+1@cs.uw.edu", password="badpassword"))
-requester2 = load_requester(dict(email = "sethv1+2@cs.uw.edu", password="sethsbadpassword"))
+requester1 = load_requester(dict(email = "seth+1@crowdlab.com", password="badpassword"))
+requester2 = load_requester(dict(email = "seth+2@crowdlab.com", password="sethsbadpassword"))
 
 # questions without task + requester (MUST BE ADDED AS PART OF A TASK)
 question1 = dict(question_name = "q1 name", question_description = "q1 desc", question_data = "data11111",

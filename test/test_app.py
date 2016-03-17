@@ -725,7 +725,7 @@ class AppTestCase(unittest.TestCase):
 
         # test adding new requester
         #TODO check integrity of requester data?
-        new_requester = dict(email='sethv1@cs.uw.edu', password='newreqpassword')
+        new_requester = dict(email='seth@crowdlab.com', password='newreqpassword')
         rv = self.app.put('/requesters', content_type='application/json', data=json.dumps(new_requester))
         self.assertEqual(200, rv.status_code)
 
@@ -999,7 +999,7 @@ class AppTestCase(unittest.TestCase):
         print "POPULATING DB..."
 
         #XXX systematic way to save IDs
-        requester1 = dict(email = "sethv1+1@cs.uw.edu", password="badpassword")
+        requester1 = dict(email = "seth+1@crowdlab.com", password="badpassword")
         rv = self.app.put('/requesters', content_type='application/json', data=json.dumps(requester1))
         self.assertEqual(200, rv.status_code)
         requester1_id = json.loads(rv.data)['requester_id']
@@ -1007,7 +1007,7 @@ class AppTestCase(unittest.TestCase):
             requester1_token = user_datastore.get_user(
                 requester1_id).get_auth_token()
 
-        requester2 = dict(email = "sethv1+2@cs.uw.edu",
+        requester2 = dict(email = "seth+2@crowdlab.com",
                           password="sethsbadpassword")
         rv = self.app.put('/requesters', content_type='application/json', data=json.dumps(requester2))
         self.assertEqual(200, rv.status_code)
