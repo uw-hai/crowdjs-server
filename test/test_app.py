@@ -1036,6 +1036,9 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         
         task1_id = json.loads(rv.data)['task_id']
+        q_ids = json.loads(rv.data)['question_ids']
+        question1_id = q_ids[0]
+        question2_id = q_ids[1]
         
         rv = self.app.put('/tasks', content_type='application/json',
                           headers={'Authentication-Token': requester2_token},
@@ -1292,7 +1295,7 @@ class AppTestCase(unittest.TestCase):
         # Test answer aggregation algorithms
 
         # Majority vote answer to question 1 is "cat"
-        agg1 = dict(question_name = question1['question_name'],
+        agg1 = dict(question_id = question1_id,
                     strategy='majority_vote')
         rv = self.app.get('/aggregated_answer',
                           content_type='application/json',
