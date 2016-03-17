@@ -32,6 +32,9 @@ class AppTestCase(unittest.TestCase):
                                                 password='chrisisawesome')
             self.test_requester_api_key = self.test_requester.get_auth_token()
 
+        #XXX make a garbage request to avoid any app.before_first_request surprises
+        self.app.get('/')
+
     def test_add_test_questions_and_task(self):
         requesters = schema.requester.Requester.objects(
             email='dan@crowdlab.com')
@@ -1293,7 +1296,6 @@ class AppTestCase(unittest.TestCase):
             name=question1['question_name'])
         saved_result = q1.inference_results[agg1['strategy']]
         self.assertEqual(agg1_answer, saved_result)
-
 
         print("Done populating DB.")
 
