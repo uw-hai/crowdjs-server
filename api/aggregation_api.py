@@ -10,7 +10,7 @@ from schema.inferenceJob import InferenceJob
 from util import get_requester_document, get_task_document, requester_token_match, requester_task_match, start_inference_job
 
 answer_agg_parser = reqparse.RequestParser()
-answer_agg_parser.add_argument('question_name', type=str, required=True)
+answer_agg_parser.add_argument('question_id', type=str, required=True)
 answer_agg_parser.add_argument('strategy', type=str, required=True)
 
 class AnswerAggregationApi(Resource):
@@ -19,10 +19,10 @@ class AnswerAggregationApi(Resource):
         Get list of all answers.
         """
         args = answer_agg_parser.parse_args()
-        question_name = args['question_name']
+        question_id = args['question_id']
         strategy = args['strategy']
         
-        question = Question.objects.get_or_404(name=question_name)
+        question = Question.objects.get_or_404(id=question_id)
 
         # call
         aggregated_answer = self.aggregated_answer(question, strategy)
