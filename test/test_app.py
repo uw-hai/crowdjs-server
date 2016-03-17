@@ -75,6 +75,16 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         task_id = json.loads(rv.data)['task_id']
 
+        #check that task questions were inserted and
+        #that each ID returned corresponds to the correct question
+        q_ids = json.loads(rv.data)['question_ids']
+        self.assertEqual(2, len(q_ids))
+        q_obj1 = schema.question.Question.objects.get(id = q_ids[0])
+        q_obj2 = schema.question.Question.objects.get(id = q_ids[1])
+        self.assertEqual(test_question1['question_name'], q_obj1.name)
+        self.assertEqual(test_question2['question_name'], q_obj2.name)
+
+
         self.assertEqual(200, rv.status_code)
         self.assertEqual(1, len(schema.task.Task.objects))
 
