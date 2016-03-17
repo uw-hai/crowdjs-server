@@ -1297,6 +1297,32 @@ class AppTestCase(unittest.TestCase):
         saved_result = q1.inference_results[agg1['strategy']]
         self.assertEqual(agg1_answer, saved_result)
 
+        # Test basic task-level aggregation
+        # Using task1, requester1 for convenience
+
+        #start job
+        task1_agg1_data = dict(requester_id=requester1_id, strategy='majority_vote')
+        task1_agg1_url = '/tasks/%s/aggregate' % task1_id
+        rv = self.app.put(task1_agg1_url,
+                    content_type='application/json',
+                    headers={'Authentication-Token':
+                                   requester1_token}, 
+                    data=json.dumps(task1_agg1_data))
+        self.assertEqual(200, rv.status_code)
+        ret = json.loads(rv.data)
+        job_id = ret['_id']['$oid']
+        print 'Job PUT return data=', ret
+
+        #check job status
+        task1_agg1_get_data = dict(requester_id=requester1_id)
+        rv = self.app.get(task1_agg1_url + '/' + job_id,
+                content_type='application/json',
+                headers={'Authentication-Token':
+                                requester1_token},
+                data=json.dumps(task1_agg1_get_data))
+        ret = json.loads(rv.data)
+        print 'Job GET return data=', ret
+
         print("Done populating DB.")
 
         
