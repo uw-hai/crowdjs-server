@@ -77,6 +77,12 @@ class TaskListApi(Resource):
     def put(self):
         """
         Create a new task.
+
+        args:
+            questions (optional list): 
+                Questions from this list will be inserted  and
+                their corresponding IDs will be returned in the same order.
+                i.e. questions= [A,B,C] -> return [A.id, B.id, C.id]
         """
 
         args = task_parser.parse_args()
@@ -165,12 +171,14 @@ class TaskListApi(Resource):
         task.save()
 
         
+        question_id_list = []
         for questionDocument in questionDocuments:
             try:
                 questionDocument.save()
                 #REDIS update 
                 # -add this question to the queue
                 app.redis.zadd(redis_get_task_queue_var(task.id, 'min_answers'), 0, str(questionDocument.id))
+                question_id_list.append(str(questionDocument.id))
             except Exception as err:
                 error_class = err.__class__.__name__
                 print error_class
@@ -184,7 +192,12 @@ class TaskListApi(Resource):
                 line_number = traceback.extract_tb(tb)[-1][1]
 
                 
-        return {'task_id' : str(task.id) }
+        ret = {'task_id' : str(task.id)}
+        if questions:
+            # if batch of questions was inserted,
+            # include list of their corresponding question IDs
+            ret['question_ids'] = question_id_list
+        return ret
 
 class TaskApi(Resource):
     def get(self, task_id):
