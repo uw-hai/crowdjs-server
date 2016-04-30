@@ -103,7 +103,7 @@ class NextQuestionApi(Resource):
             #min_answers: increment priority of the question that was assigned
             if strategy == 'min_answers':
                 app.redis.zincrby(redis_get_task_queue_var(task_id, strategy), str(question.id), 1)
-        return {'question_name' : str(question.name),
+        return {'question_name' : question.name,
                 'question_id' : str(question.id)}
 
     ####
