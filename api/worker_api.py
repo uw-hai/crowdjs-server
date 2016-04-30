@@ -39,3 +39,11 @@ class WorkerAnswersApi(Resource):
         """
         answers = Answer.objects(worker=worker_id)
         return json.loads(answers.to_json())
+
+class WorkerTaskAnswersApi(Resource):
+    def get(self, task_id, worker_id):
+        """
+        Get all answers by the given worker, on the given task.
+        """
+        answers = Answer.objects(worker=worker_id, task=task_id, status="Completed")
+        return json.loads(answers.to_json())
