@@ -13,7 +13,7 @@ MONGOLAB_URI=mongodb://db_user:db_password@host:port
 APP_SETTINGS='config.DevelopmentConfig'
 ZMDP_ALIAS=zmdp # or ./zmdp/bin/<os_name>/zmdp
 ```
-- Create a production version `.production-env` that uses the production configuration.
+- Create a production version `.production-env` that uses the production configuration. **This file should not include the details of your production database connections.**
 ```
 APP_SETTINGS='config.Production'
 ```
@@ -34,6 +34,7 @@ To set up Heroku environment to run ZMDP, add the following buildpacks, using th
 
 
 ## Testing instructions
+- **DO NOT RUN UNIT TESTS ON YOUR PRODUCTION DATABASE!!! IT WILL BE CLEARED!!!**
 - Use `heroku local -f Procfile.test` (if using Heroku) or
 - Be sure to run both `./run_tests.sh .env` AND `./run_tests.sh .production-env` to test both dev and production environments.
 - The `test/` folder also contains folders with more tests that include end-to-end workflow tests as well as more unit tests. To run these, read the README inside the desired `*_workflow/` folder.
