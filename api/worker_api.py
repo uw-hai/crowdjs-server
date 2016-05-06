@@ -41,9 +41,17 @@ class WorkerAnswersApi(Resource):
         return json.loads(answers.to_json())
 
 class WorkerTaskAnswersApi(Resource):
-    def get(self, task_id, worker_id):
+    def get(self, task_id, platform_id):
         """
         Get all answers by the given worker, on the given task.
         """
-        answers = Answer.objects(worker=worker_id, task=task_id, status="Completed")
+        workers = None
+        try:
+            workers = Worker.objects.get(platform_id=platform_id)
+        except Exception:
+            print "%s platformer doesnot exist" % platform_id 
+        if workers is None:
+            return []
+        answers = Answer.objects(worker=workers.id, task=task_id)
         return json.loads(answers.to_json())
+
