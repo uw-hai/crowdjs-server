@@ -17,10 +17,10 @@ import sys, traceback
 answer_parser = reqparse.RequestParser()
 answer_parser.add_argument('requester_id', type=str, required=True)
 answer_parser.add_argument('task_id', type=str, required=True)
-answer_parser.add_argument('question_name', type=str, required=True)
+answer_parser.add_argument('question_name', required=True)
 answer_parser.add_argument('worker_id', type=str, required=True)
 answer_parser.add_argument('worker_source', type=str, required=True)
-answer_parser.add_argument('value', type=str, required=True)
+answer_parser.add_argument('value', required=True)
 answer_parser.add_argument('is_alive', type=flask.ext.restful.inputs.boolean,
                            required=False,
                            default=False)

@@ -20,7 +20,8 @@ api = Api(app)
 
 app.config['CORS_HEADERS'] = 'Content-Type'
 cors = CORS(app, resources={"/assign_next_question": {"origins": "*"},
-                            "/answers":  {"origins": "*"}})
+                            "/answers":  {"origins": "*"},
+                            "/workers": {"origins": "*"}})
 
 
 import schema.requester
@@ -160,6 +161,7 @@ from api.worker_api import *
 api.add_resource(WorkerListApi, '/workers') #UNSECURED
 api.add_resource(WorkerApi, '/workers/<worker_id>') #UNSECURED
 api.add_resource(WorkerAnswersApi, '/workers/<worker_id>/answers') #UNSECURED
+api.add_resource(WorkerTaskAnswersApi, '/workers/<task_id>/<platform_id>')
 #TODO not implemented yet
 #api.add_resource(WorkerSkillApi, '/workers/<worker_id>/skill')
 #api.add_resource(WorkerPerTaskSkillApi, '/workers/<worker_id>/skill/<task_id>')
