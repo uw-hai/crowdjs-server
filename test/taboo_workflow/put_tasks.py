@@ -45,23 +45,13 @@ def put_tasks(crowdjs_url, email, API_KEY, requester_id, answers_per_question,
     headers = {'Authentication-Token': API_KEY,
                'content_type' : 'application/json'}
 
-    global_answer_callback_file = open('global_answer_callback.py', 'r') 
-    global_answer_callback_string = global_answer_callback_file.read()
-    global_answer_callback_string = ("threshold=%d\nanswers_per_question=%d" %
-                                     (threshold, answers_per_question) +
-                                     global_answer_callback_string)
     
     data = {'task_name': task_name,
             'task_description': task_description,
             'requester_id' : requester_id,
             'data' : pickle.dumps(taboo_words),
-            'global_answer_callback' : global_answer_callback_string,
             'questions' : questions}
-    
-
-    #print "Here is what is being sent"
-    #print data
-    
+        
     r = requests.put(crowdjs_url, headers=headers,
                      json=data)
 
@@ -70,13 +60,6 @@ def put_tasks(crowdjs_url, email, API_KEY, requester_id, answers_per_question,
     response_content = r.json()
     task_id = response_content['task_id']
 
-
-    #logfile_name = 'logs/%s.txt' % datetime.datetime.now().ctime()
-    #with open(logfile_name, 'w') as logFile:
-    #    logFile.write('%s\n' % task_name)
-    #    logFile.write('%s\n' % task_description)
-    #    logFile.write('%s\n' % task_id)
-    #    logFile.write(pickle.dumps(questions))
 
 
     return response_content, questions

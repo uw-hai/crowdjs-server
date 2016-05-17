@@ -166,51 +166,6 @@ class TestTabooWorkflow(unittest.TestCase):
         print r.text
 
 
-        #Now assign another question to worker 1
-        #This should work because there should now be a new question
-        print "ASSIGNING ANOTHER QUESTION"
-        assign_url = '/assign_next_question?worker_id=worker1&worker_source=mturk&task_id=%s&requester_id=%s' % (task_id, requester_id)
-        assign_url = crowdjs_url + assign_url
-        r = requests.get(assign_url)
-        self.assertIn('question_name', r.json())
-        question_name = r.json()['question_name']
-
-        print question_name
-        taboo_words = question_name.split('\t')[5]
-        print taboo_words
-        taboo_words = taboo_words.split(';')
-
-        print taboo_words
-        
-        self.assertEqual(len(taboo_words), 4)
-        self.assertIn('head', taboo_words)
-        self.assertIn('honcho', taboo_words)
-        self.assertIn('not', taboo_words)
-
-
-        #Now check that there are two questions in total, but one has
-        #a zero budget.
-        question_url = '/questions?requester_id=%s' % requester_id
-        question_url = crowdjs_url + question_url
-        
-        headers = {'Authentication-Token': API_KEY}
-        r = requests.get(question_url, headers=headers)
-        all_questions = r.json()
-        print all_questions
-        self.assertEqual(len(all_questions), 2)
-        questions_with_zero_budget = 0
-        questions_with_gtzero_budget = 0
-        for question in all_questions:
-            print question['answers_per_question']
-            if int(question['answers_per_question']) > 0:
-                questions_with_gtzero_budget += 1
-            else:
-                questions_with_zero_budget += 1
-        self.assertEqual(questions_with_zero_budget, 1)
-        self.assertEqual(questions_with_gtzero_budget, 1)
-        
-
-
     def test_concurrency(self):
 
         print "TESTING CONCURRENCY"
@@ -336,30 +291,7 @@ class TestTabooWorkflow(unittest.TestCase):
         print r.text
 
         
-        #Now assign another question to worker 1
-        #This should work because there should now be a new question
-        print "ASSIGNING ANOTHER QUESTION"
-        assign_url = '/assign_next_question?worker_id=worker1&worker_source=mturk&task_id=%s&requester_id=%s' % (task_id, requester_id)
-        assign_url = crowdjs_url + assign_url
-        r = requests.get(assign_url)
-        self.assertIn('question_name', r.json())
-        question_name = r.json()['question_name']
 
-        print question_name
-        taboo_words = question_name.split('\t')[5]
-        print taboo_words
-        taboo_words = taboo_words.split(';')
-
-        print taboo_words
-        
-        self.assertEqual(len(taboo_words), 4)
-        self.assertIn('head', taboo_words)
-        self.assertIn('honcho', taboo_words)
-        self.assertIn('not', taboo_words)
-
-
-        #Now check that there are two questions in total, but one has
-        #a zero budget.
         question_url = '/questions?requester_id=%s' % requester_id
         question_url = crowdjs_url + question_url
         
@@ -367,7 +299,7 @@ class TestTabooWorkflow(unittest.TestCase):
         r = requests.get(question_url, headers=headers)
         all_questions = r.json()
         print all_questions
-        self.assertEqual(len(all_questions), 2)
+        self.assertEqual(len(all_questions), 1)
         questions_with_zero_budget = 0
         questions_with_gtzero_budget = 0
         for question in all_questions:
@@ -376,13 +308,9 @@ class TestTabooWorkflow(unittest.TestCase):
                 questions_with_gtzero_budget += 1
             else:
                 questions_with_zero_budget += 1
-        self.assertEqual(questions_with_zero_budget, 1)
+        self.assertEqual(questions_with_zero_budget, 0)
         self.assertEqual(questions_with_gtzero_budget, 1)
 
-        #Add the answer for the third assignment and make sure that
-        #the GAC was not called, meaning that the third answer
-        #does not cause another question to be created
-        
 
         
 if __name__ == '__main__':

@@ -2,7 +2,7 @@ To run the taboo workflow test, simply run python test.py. This test assumes tha
 
 Create a file config.json in this directory like so:
 {
-    "crowdjs_url": "http://<server_url:port>"
-    "test_requester_email": "<requester account email>"
+    "crowdjs_url": "http://<server_url:port>",
+    "test_requester_email": "<requester account email>",
     "test_requester_password": "<requester account password>"
 }

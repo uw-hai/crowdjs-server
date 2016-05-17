@@ -21,8 +21,6 @@ task_parser.add_argument('task_description', type=str, required=True)
 task_parser.add_argument('questions', type=list, location='json',
                          required=False)
 task_parser.add_argument('data', type=str, required=False)
-task_parser.add_argument('global_answer_callback', type=str, required=False,
-                         default = None)
 task_parser.add_argument('answers_per_question', type=int, required=False,
                          default = 1)
 task_parser.add_argument('total_task_budget', type=int, required=False,
@@ -96,7 +94,6 @@ class TaskListApi(Resource):
         questions = args['questions']
         task_answers_per_question = args['answers_per_question']
         task_data = args['data']
-        task_global_answer_callback = args['global_answer_callback']
         total_task_budget = args['total_task_budget']
         
         if questions is None:
@@ -109,7 +106,6 @@ class TaskListApi(Resource):
             description = task_description,
             requester = requester,
             data = task_data,
-            global_answer_callback = task_global_answer_callback,
             total_task_budget = total_task_budget)
 
         questionDocuments = []
@@ -133,43 +129,10 @@ class TaskListApi(Resource):
                                         answers_per_question)
 
             questionDocuments.append(questionDocument)
-
-        #If the requester provided a function, test it to see that
-        #it doesn't break. First create an answer, the
-        #call the function, then delete the question,
-        #then delete the task data.
-        if not task.global_answer_callback == None:
-            try:
-                answer = Answer(question = question,
-                                task = task,
-                                requester = requester,
-                                worker = None,
-                                assign_time = None,
-                                is_alive = False,
-                                complete_time = datetime.datetime.now(),
-                                value = 'test',
-                                status = 'Completed')
-            
-                question = questionDocuments[0]
-                new_questions = []
-                new_task_data = None
-                                
-                exec(task.global_answer_callback)
-                
-            
-            except Exception as err:
-                error_class = err.__class__.__name__                 
-                detail = err.args[0]
-                cl, exc, tb = sys.exc_info()
-                line_number = traceback.extract_tb(tb)[-1][1]
-                return 'Sorry, your callback threw an exception. %s %s %s ' % (
-                    error_class, detail, line_number)
-
         
         #Only save the task and the questions after loading all the questions
         #and making sure there are no errors
         task.save()
-
         
         question_id_list = []
         for questionDocument in questionDocuments:

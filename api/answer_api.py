@@ -24,9 +24,6 @@ answer_parser.add_argument('value', type=str, required=True)
 answer_parser.add_argument('is_alive', type=flask.ext.restful.inputs.boolean,
                            required=False,
                            default=False)
-answer_parser.add_argument('call_gac', type=flask.ext.restful.inputs.boolean,
-                           required=False,
-                           default=True)
 
 answer_get_parser = reqparse.RequestParser()
 answer_get_parser.add_argument('requester_id', type=str, required=True)
@@ -75,7 +72,6 @@ class AnswerListApi(Resource):
         worker_source = args['worker_source']
         value = args['value']
         is_alive = args['is_alive']
-        call_gac = args['call_gac']
 
         requester = Requester.objects.get(id = requester_id)
         task = Task.objects.get(id = task_id)
@@ -122,64 +118,6 @@ class AnswerListApi(Resource):
         answer.status = 'Completed'
 
         answer.save()
-
-        #Now run any code that the requester specified.
-        if (not task.global_answer_callback == None and
-            call_gac):
-            try:
-                new_questions = []
-                new_task_data = None
-                old_question_budget = None
-
-                new_question_documents = []
-                exec(task.global_answer_callback)
-                for new_question_def in new_questions:
-                    new_question_name = new_question_def['name']
-                    new_question_description = new_question_def['description']
-                    new_question_data = new_question_def['data']
-                    new_question_task = new_question_def['task']
-                    new_question_requester = new_question_def['requester']
-                    new_question_apq = new_question_def[
-                        'answers_per_question']
-
-                    #If the question already exists, do not add it
-                    if len(Question.objects(task=task,
-                                            name=new_question_name)) > 0:
-                        continue
-                    
-                    new_question = Question(
-                        name = new_question_name,
-                        description = new_question_description,
-                        data = new_question_data,
-                        task = new_question_task,
-                        requester = new_question_requester,
-                        answers_per_question = new_question_apq)
-                    
-
-                    new_question_documents.append(new_question)
-
-                for new_question_document in new_question_documents:
-                    new_question_document.save()
-
-                    #REDIS Update
-                    app.redis.zadd(redis_get_task_queue_var(task_id, 'min_answers'), 0, str(new_question_document.id))
-                task.data = new_task_data
-                task.save()
-
-                if not old_question_budget == None:
-                    #Set the answers_per_question of the old question
-                    #to something specified in the callback. This
-                    #allows you to turn off the old question.
-                    question.answers_per_question = old_question_budget
-                    question.save()
-                
-            except Exception as err:
-                error_class = err.__class__.__name__
-                detail = err.args[0]                
-                cl, exc, tb = sys.exc_info()
-                line_number = traceback.extract_tb(tb)[-1][1]
-                return 'Sorry, your callback threw an exception. %s %s %s ' % (
-                    error_class, detail, line_number)
         
         return {'value' : answer.value}
 
