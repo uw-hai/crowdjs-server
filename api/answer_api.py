@@ -89,12 +89,6 @@ class AnswerListApi(Resource):
         answers = Answer.objects(question = question,
                                 worker = worker,
                                 status = 'Assigned')
-        #print "LEN ANSWERS"
-        #print question.name
-        #print worker.platform_id
-        #print len(answers)
-        #for a in Answer.objects:
-        #    print a.id
         
         if len(answers) == 0:
             answer = Answer(question = question,
@@ -106,13 +100,24 @@ class AnswerListApi(Resource):
             #REDIS update
             #this answer was not assigned by our system
             #Hack, might have to update bookkeeping for every strategy here
-            app.redis.zincrby(redis_get_task_queue_var(task_id, 'min_answers'), str(question.id), 1)
+            #If the answer was not assigned by our system, should it count?
+            task_queue_var = redis_get_task_queue_var(task_id, 'min_answers')
+            #Check if the question is in the queue.
+            #If not, don't need to do anything.
+            #If it is, increment the count.
+            if not app.redis.zscore(task_queue_var, str(question.id)) == None:
+                app.redis.zincrby(task_queue_var, str(question.id), 1)
+                if (app.redis.zscore(task_queue_var,str(question.id)) >=
+                    question.answers_per_question):
+                    app.redis.zrem(task_queue_var,str(question.id))
+
 
         else:
             #XXX assuming worker only assigned to particular question once?
             assert len(answers) == 1
             answer = answers[0]
-        
+
+            
         answer.complete_time = datetime.datetime.now()
         answer.value = value
         answer.status = 'Completed'

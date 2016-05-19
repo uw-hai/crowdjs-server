@@ -200,9 +200,24 @@ class TaskSetBudget(Resource):
         answers_per_question = args['answers_per_question']
         total_task_budget = args['total_task_budget']
 
-        if not answers_per_question == None:
+        if answers_per_question:
             questions = Question.objects(task=task_id)
+            task_queue_var = redis_get_task_queue_var(task_id, 'min_answers')
             for question in questions:
+
+                previous_answers_per_question = question.answers_per_question
+                diff = answers_per_question - previous_answers_per_question
+
+                if diff > 0 and (app.redis.zscore(task_queue_var,
+                                                 str(question.id)) == None):
+                    app.redis.zadd(task_queue_var,
+                                   previous_answers_per_question,
+                                   str(question.id))
+                if diff < 0 and app.redis.zscore(task_queue_var,
+                                                 str(question.id)):
+                    if (app.redis.zscore(task_queue_var, str(question.id)) >=
+                        answers_per_question):
+                        app.redis.zrem(task_queue_var, str(question.id))
                 question.answers_per_question = answers_per_question
                 question.save()
 

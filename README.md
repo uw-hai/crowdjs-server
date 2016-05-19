@@ -46,8 +46,3 @@ To set up Heroku environment to run ZMDP, add the following buildpacks, using th
 - To insert an answer into the database, make a PUT request to `server_url/answers`.
 - See the documentation for more details about how to make the requests.
 
-
-## Workflow Management
-- When inserting a task, you may include a function (as a string) that will be called every time an answer is submitted by a worker. You can use this function to create new questions and remove old questions. Keep in mind this function will always be called, unless you specify otherwise (when making a put request to `/answers`), even if the answer submitted is for a question that has already been removed.
-- Inside this function, the function may modify two variables: `new_questions`, which is a python list that contains a list of new questions you want added to your task, and `old_question_budget`, an integer that you can set that allows you to mutate the budget of the question that was just answered. (Setting it to 0 effectively prevents workers from seeing this question).
-- Your function should NOT read or write from the database in any way, nor should it make any assumptions about the rest of the code. It should only modify the 2 variables specified above using code that does not depend on crowdjs.

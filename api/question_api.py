@@ -18,6 +18,9 @@ question_parser.add_argument('question_description', type=str, required=True)
 question_parser.add_argument('task_id', type=str, required=True)
 question_parser.add_argument('question_data', type=str, required=False)
 question_parser.add_argument('valid_answers', type=list, location='json', required=False)
+question_parser.add_argument('answers_per_question', type=int, required=False,
+                             default = 1)
+
 
 
 question_get_parser = reqparse.RequestParser()
@@ -73,10 +76,12 @@ class QuestionListApi(Resource):
 
         question_name = args['question_name']
         question_description = args['question_description']
+        answers_per_question = args['answers_per_question']
 
         # optional args (default to empty)
         question_data = args.get('question_data', "")
         valid_answers = args.get('valid_answers', [])
+
 
         # check references
         requester_id = args['requester_id']
@@ -91,12 +96,15 @@ class QuestionListApi(Resource):
             description = question_description, 
             data = question_data,
             valid_answers = valid_answers, 
-            task = task, requester = requester)
+            task = task, requester = requester,
+            answers_per_question = answers_per_question)
 
         questionDocument.save()
 
         #REDIS update add this question to the queue
-        app.redis.zadd(redis_get_task_queue_var(task_id, 'min_answers'), 0, str(questionDocument.id))
+        app.redis.zadd(redis_get_task_queue_var(task_id, 'min_answers'),
+                       0,
+                       str(questionDocument.id))
 
         return {'question_id' : str(questionDocument.id)}
 

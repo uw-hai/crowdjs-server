@@ -142,6 +142,7 @@ class AppTestCase(unittest.TestCase):
         test_question3 = dict(question_name=test_question3_name,
                               question_description=test_question3_description,
                               question_data='84',
+                              answers_per_question = 10,
                               task_id=task_id2,
                               requester_id = str(self.test_requester.id))
 
@@ -280,7 +281,12 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(assign1, assign2)
         self.assertEqual(len(schema.answer.Answer.objects), 1)
 
-        #try assigning again to a second worker
+        task_queue_var = redis_get_task_queue_var(task_id,
+                                                  'min_answers')
+        task_queue = app.redis.zrange(task_queue_var, 0, -1)
+        self.assertEqual(1, len(task_queue))
+
+        #try assigning task 1 again to worker 2 (Question 2)
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
                           headers={'Authentication-Token':
@@ -290,8 +296,14 @@ class AppTestCase(unittest.TestCase):
         assign3 = json.loads(rv.data)['question_name']
         self.assertEqual(len(schema.answer.Answer.objects), 2)
 
+        task_queue_var = redis_get_task_queue_var(task_id,
+                                                  'min_answers')
+        task_queue = app.redis.zrange(task_queue_var, 0, -1)
+        self.assertEqual(0, len(task_queue))
+
+        
         #try assigning again, but shouldn't work because of
-        #exceeded budget
+        #exceeded budget. By default each assignment has budget 1.
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
                           headers={'Authentication-Token':
@@ -301,11 +313,12 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         self.assertIn('error', json.loads(rv.data))
 
-        
+
+        print "Setting the budget to be 2 answers per question"
         set_budget_data = dict(task_id=task_id,
                                requester_id=str(self.test_requester.id),
                                answers_per_question=2)
-        
+
         rv = self.app.post('/tasks/set_budget',
                            content_type='application/json',
                            data=json.dumps(set_budget_data))
@@ -318,7 +331,11 @@ class AppTestCase(unittest.TestCase):
                            data=json.dumps(set_budget_data))
         self.assertEqual(200, rv.status_code)
 
-        
+        task_queue_var = redis_get_task_queue_var(task_id,
+                                                  'min_answers')
+        task_queue = app.redis.zrange(task_queue_var, 0, -1)
+        self.assertEqual(2, len(task_queue))
+
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
                           headers={'Authentication-Token':
@@ -402,6 +419,7 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(3, len(answers))
 
         # Test adding answers
+        print "Adding answer to Assign1"
         test_answer = dict(question_name=assign1,
                            requester_id = str(self.test_requester.id),
                            task_id = task_id,
@@ -454,6 +472,7 @@ class AppTestCase(unittest.TestCase):
 
 
         #Test adding an answer to a question that wasn't assigned.
+        print "Adding answer for task 2, question3, qorker 1"
         test_answer = dict(question_name=test_question3_name,
                            task_id=task_id2,
                            requester_id=str(self.test_requester.id),
@@ -519,6 +538,7 @@ class AppTestCase(unittest.TestCase):
 
 
         # Test adding another answer for which we are expecting one
+        print "Adding answer to Assign3"
         test_answer = dict(question_name=assign3,
                            requester_id = str(self.test_requester.id),
                            task_id = task_id,
@@ -576,9 +596,17 @@ class AppTestCase(unittest.TestCase):
 
         self.assertEqual(question_name['name'], assign3)
 
+        #Test that there are currently two questions on the redis queue
+        #for task 1
+        task_queue_var = redis_get_task_queue_var(task_id,
+                                                  'min_answers')
+        task_queue = app.redis.zrange(task_queue_var, 0, -1)
+        self.assertEqual(1, len(task_queue))
+
 
         # Test adding two answers -one which we are expecting, and
         #one which we will not be expecting after adding the first
+        print "Adding answer for assign4"
         test_answer = dict(question_name=assign4,
                            requester_id = str(self.test_requester.id),
                            task_id = task_id,
@@ -593,6 +621,13 @@ class AppTestCase(unittest.TestCase):
         get_answer = json.loads(rv.data)
         self.assertEqual(get_answer['value'], "assign3value1")
 
+
+        task_queue_var = redis_get_task_queue_var(task_id,
+                                                  'min_answers')
+        task_queue = app.redis.zrange(task_queue_var, 0, -1)
+        self.assertEqual(1, len(task_queue))
+
+        print "Adding a second unexpected answer for assign4"
         test_answer = dict(question_name=assign4,
                            requester_id = str(self.test_requester.id),
                            task_id = task_id,
@@ -606,6 +641,12 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
         self.assertEqual(get_answer['value'], "assign3value2")
+
+        task_queue_var = redis_get_task_queue_var(task_id,
+                                                  'min_answers')
+        task_queue = app.redis.zrange(task_queue_var, 0, -1)
+        self.assertEqual(1, len(task_queue))
+
         
         #There should now be 5 answers
         rv = self.app.get('/answers', content_type='application/json',
@@ -697,6 +738,7 @@ class AppTestCase(unittest.TestCase):
         self.assertNotEqual(None, json.loads(rv.data))
 
         #and the next assignment will not work because of budget
+        #only 2 answers per question
         rv = self.app.get('/assign_next_question',
                           content_type='application/json',
                           headers={'Authentication-Token':
@@ -746,8 +788,25 @@ class AppTestCase(unittest.TestCase):
         task_queue_var = redis_get_task_queue_var(task_id,
                                                   'min_answers')
         task_queue = app.redis.zrange(task_queue_var, 0, -1)
-        self.assertEqual(2, len(task_queue))
+        self.assertEqual(0, len(task_queue))
 
+
+        print "Setting the budget to be 3 answers per question"
+        set_budget_data = dict(task_id=task_id,
+                               requester_id=str(self.test_requester.id),
+                               answers_per_question=3)
+
+        rv = self.app.post('/tasks/set_budget',
+                           content_type='application/json',
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key},
+                           data=json.dumps(set_budget_data))
+        self.assertEqual(200, rv.status_code)
+
+        task_queue_var = redis_get_task_queue_var(task_id,
+                                                  'min_answers')
+        task_queue = app.redis.zrange(task_queue_var, 0, -1)
+        self.assertEqual(2, len(task_queue))
 
         total_workers_assignments = 0
         for worker in schema.worker.Worker.objects():
@@ -921,6 +980,27 @@ class AppTestCase(unittest.TestCase):
         question5_id = json.loads(rv.data)['question_id']
 
 
+        # Test question assignment algorithms
+        # First set the budget high enough
+        set_budget_data = dict(task_id=task1_id,
+                               requester_id=requester1_id,
+                               answers_per_question=10)
+        rv = self.app.post('/tasks/set_budget',
+                           content_type='application/json',
+                           headers={'Authentication-Token':
+                                    requester1_token},
+                           data=json.dumps(set_budget_data))
+        self.assertEqual(200, rv.status_code)
+        set_budget_data = dict(task_id=task2_id,
+                               requester_id=requester2_id,
+                               answers_per_question=10)
+        rv = self.app.post('/tasks/set_budget',
+                           content_type='application/json',
+                           headers={'Authentication-Token':
+                                    requester2_token},
+                           data=json.dumps(set_budget_data))
+        self.assertEqual(200, rv.status_code)
+
         # Add workers
         ###
         # DONT NEED TO ADD WORKERS
@@ -1083,28 +1163,6 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(3, len(schema.worker.Worker.objects))
         self.assertEqual(9, len(schema.answer.Answer.objects))
 
-        # TODO check integrity of data (boring)
-
-        # Test question assignment algorithms
-        # First set the budget high enough
-        set_budget_data = dict(task_id=task1_id,
-                               requester_id=requester1_id,
-                               answers_per_question=10)
-        rv = self.app.post('/tasks/set_budget',
-                           content_type='application/json',
-                           headers={'Authentication-Token':
-                                    requester1_token},
-                           data=json.dumps(set_budget_data))
-        self.assertEqual(200, rv.status_code)
-        set_budget_data = dict(task_id=task2_id,
-                               requester_id=requester2_id,
-                               answers_per_question=10)
-        rv = self.app.post('/tasks/set_budget',
-                           content_type='application/json',
-                           headers={'Authentication-Token':
-                                    requester2_token},
-                           data=json.dumps(set_budget_data))
-        self.assertEqual(200, rv.status_code)
 
         
         # Task 1's least answered question is question 2
