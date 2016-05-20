@@ -98,28 +98,6 @@ class NextQuestionApi(Resource):
                                           is_alive = True)
             
             answer.save()
-            #REDIS update
-            app.redis.sadd(redis_get_worker_assignments_var(task_id, worker.id), str(question.id))
-            #min_answers: increment priority of the question that was assigned
-            if strategy == 'min_answers':
-                app.redis.zincrby(redis_get_task_queue_var(task_id, strategy),
-                                  str(question.id),
-                                  1)
-
-                #If this assignemnt causes the question to
-                #reach its allocated budget,
-                #Remove it from the queue.
-                #if the worker doesn't do the assignment, then the
-                #question has to be replaced in the queue
-                
-                
-                if app.redis.zscore(
-                        redis_get_task_queue_var(task_id, 'min_answers'),
-                        str(question.id)) >= question.answers_per_question:
-                    app.redis.zrem(
-                        redis_get_task_queue_var(task_id, 'min_answers'),
-                        str(question.id))
-
         return {'question_name' : str(question.name),
                 'question_id' : str(question.id)}
 
@@ -163,35 +141,49 @@ class NextQuestionApi(Resource):
         task = schema.task.Task.objects.get_or_404(id=task_id)
 
         task_questions_var = redis_get_task_queue_var(task_id, 'min_answers')
-        worker_assignments_var = redis_get_worker_assignments_var(task_id, worker_id)
+        worker_assignments_var = redis_get_worker_assignments_var(task_id,
+                                                                  worker_id)
 
-        #print "true task questions from DB with # of assignments+completed answers:"
-        #for q in schema.question.Question.objects(task=task_id):
-        #    print q.name, len(schema.answer.Answer.objects(question=q))
-        
-        #print "true worker assignments from DB (qname, value):"
-        #for a in schema.answer.Answer.objects(worker=worker,task=task_id):
-        #    print a.question.name, a.value
-        task_questions = app.redis.zrange(task_questions_var, 0, -1)
-        for question in task_questions:
 
-            #If the worker has not done it before, assign it.
-            #Otherwise, if the question allows for
-            #multiple answers from the same worker,
-            #assign it.             
-            if not app.redis.sismember(worker_assignments_var, question):
-                chosen_question = question
-                break
-            else:
-                question_obj = schema.question.Question.objects.get(id=question)
-                if not question_obj.unique_workers:    
-                    chosen_question = question
-                    break
-
+        pipe = app.redis.pipeline()
+        while 1:
+            try:
+                pipe.watch(task_questions_var)
+                pipe.watch(worker_assignments_var)
+                task_questions = pipe.zrange(task_questions_var, 0, -1)
+                for question in task_questions:
+                    #If the worker has not done it before, assign it.
+                    #Otherwise, if the question allows for
+                    #multiple answers from the same worker,
+                    #assign it.             
+                    if not pipe.sismember(worker_assignments_var, question):
+                        chosen_question = question
+                        break
+                    else:
+                        question_obj = schema.question.Question.objects.get(
+                            id=question)
+                        if not question_obj.unique_workers:    
+                            chosen_question = question
+                            break
                     
-
-        if chosen_question is None:
-            return None
-        else:
-            return schema.question.Question.objects.get(
-                id=chosen_question)
+                if chosen_question is None:
+                    return None
+                chosen_question_obj = schema.question.Question.objects.get(
+                    id=chosen_question)
+                
+                pipe.sadd(worker_assignments_var, chosen_question)
+                pipe.zincrby(task_questions_var, chosen_question, 1)
+                
+                #If this assignemnt causes the question to
+                #reach its allocated budget,
+                #Remove it from the queue.                        
+                if (pipe.zscore(task_questions_var,chosen_question) >=
+                    chosen_question_obj.answers_per_question):
+                    pipe.zrem(task_questions_var, chosen_question)
+                break
+            except WatchError:
+                continue
+            finally:
+                pipe.reset()
+                
+        return chosen_question_obj

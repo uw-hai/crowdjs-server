@@ -205,23 +205,32 @@ class TaskSetBudget(Resource):
         if answers_per_question:
             questions = Question.objects(task=task_id)
             task_queue_var = redis_get_task_queue_var(task_id, 'min_answers')
-            for question in questions:
+            pipe = app.redis.pipeline()
+            while 1:
+                try:
+                    pipe.watch(task_queue_var)
+                    for question in questions:
 
-                previous_answers_per_question = question.answers_per_question
-                diff = answers_per_question - previous_answers_per_question
+                        previous_answers_per_question = question.answers_per_question
+                        diff = answers_per_question - previous_answers_per_question
 
-                if diff > 0 and (app.redis.zscore(task_queue_var,
-                                                 str(question.id)) == None):
-                    app.redis.zadd(task_queue_var,
-                                   previous_answers_per_question,
-                                   str(question.id))
-                if diff < 0 and app.redis.zscore(task_queue_var,
-                                                 str(question.id)):
-                    if (app.redis.zscore(task_queue_var, str(question.id)) >=
-                        answers_per_question):
-                        app.redis.zrem(task_queue_var, str(question.id))
-                question.answers_per_question = answers_per_question
-                question.save()
+                        if diff > 0 and (pipe.zscore(task_queue_var,
+                                                     str(question.id)) == None):
+                            pipe.zadd(task_queue_var,
+                                      previous_answers_per_question,
+                                      str(question.id))
+                        if diff < 0 and pipe.zscore(task_queue_var,
+                                                    str(question.id)):
+                            if (pipe.zscore(task_queue_var, str(question.id)) >=
+                                answers_per_question):
+                                pipe.zrem(task_queue_var, str(question.id))
+                        question.answers_per_question = answers_per_question
+                        question.save()
+                    break
+                except WatchError:
+                    continue
+                finally:
+                    pipe.reset()
 
         if not total_task_budget == None:
             task = Task.objects.get_or_404(id=task_id)

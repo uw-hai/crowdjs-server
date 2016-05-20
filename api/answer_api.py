@@ -105,11 +105,21 @@ class AnswerListApi(Resource):
             #Check if the question is in the queue.
             #If not, don't need to do anything.
             #If it is, increment the count.
-            if not app.redis.zscore(task_queue_var, str(question.id)) == None:
-                app.redis.zincrby(task_queue_var, str(question.id), 1)
-                if (app.redis.zscore(task_queue_var,str(question.id)) >=
-                    question.answers_per_question):
-                    app.redis.zrem(task_queue_var,str(question.id))
+            pipe = app.redis.pipeline()
+            while 1:
+                try:
+                    pipe.watch(task_queue_var)
+                    if not pipe.zscore(task_queue_var,
+                                       str(question.id)) == None:
+                        pipe.zincrby(task_queue_var, str(question.id), 1)
+                    if (pipe.zscore(task_queue_var,str(question.id)) >=
+                        question.answers_per_question):
+                        pipe.zrem(task_queue_var,str(question.id))
+                    break
+                except WatchError:
+                    continue
+                finally:
+                    pipe.reset()
 
 
         else:
