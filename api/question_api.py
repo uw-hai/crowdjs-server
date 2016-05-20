@@ -20,7 +20,8 @@ question_parser.add_argument('question_data', type=str, required=False)
 question_parser.add_argument('valid_answers', type=list, location='json', required=False)
 question_parser.add_argument('answers_per_question', type=int, required=False,
                              default = 1)
-
+question_parser.add_argument('unique_workers', type=bool, required=False,
+                             default = True)
 
 
 question_get_parser = reqparse.RequestParser()
@@ -81,6 +82,7 @@ class QuestionListApi(Resource):
         # optional args (default to empty)
         question_data = args.get('question_data', "")
         valid_answers = args.get('valid_answers', [])
+        unique_workers = args['unique_workers']
 
 
         # check references
@@ -97,7 +99,8 @@ class QuestionListApi(Resource):
             data = question_data,
             valid_answers = valid_answers, 
             task = task, requester = requester,
-            answers_per_question = answers_per_question)
+            answers_per_question = answers_per_question,
+            unique_workers = unique_workers)
 
         questionDocument.save()
 

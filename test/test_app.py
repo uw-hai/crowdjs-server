@@ -35,6 +35,40 @@ class AppTestCase(unittest.TestCase):
         #XXX make a garbage request to avoid any app.before_first_request surprises
         self.app.get('/')
 
+    ########
+    # TASKS AND ASSIGNMENTS IN THIS TEST
+    #
+    # Task 1 (task_id) (task budget 3):  Question 1, Question 2. test_requester
+    #
+    # Task 2 : Question 3 (10 answers per question), test_requester
+    #
+    # Assign 1: Task 1 to worker 1 (question 1)
+    # Assign 3: Task 1 to worker 2 (question 2)
+    #
+    # Set Budget to 2 answers per question
+    #
+    # Assign 4: Task 1 to worker 3 (question 1) 
+    #
+    # One question should be removed from redis queue (question 1)
+    #
+    # Add Answer to Assign 1.
+    # Add answer for task 2, question 3, worker 1
+    # Add answer to Assign 3\
+    # Redis queue should have 1 question it.
+    # Add answer to Assign 4
+    # Redis queue should still have 1 question. (question 2)
+    # Add answer to Assign 4 again.
+    # Now redis queue should still have 1 question.
+    #
+    # Set task budget to 6.
+    #
+    # Assign Task 1 to worker 1. (question 2)
+    # Now redis queue should have 0 questions
+    #
+    # Set budget to 3 answers per question
+    # 
+    #
+    ########
     def test_add_test_questions_and_task(self):
         requesters = schema.requester.Requester.objects(
             email='dan@crowdlab.com')
@@ -850,7 +884,9 @@ class AppTestCase(unittest.TestCase):
         for worker in schema.worker.Worker.objects():
             total_workers_assignments += app.redis.scard(redis_get_worker_assignments_var(task_id, worker.id))
         self.assertEqual(0, total_workers_assignments)
-            
+
+
+
         ##########
         # TEST DELETING TASKS
         ##########
@@ -893,9 +929,160 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(0, len(schema.question.Question.objects()))
         self.assertEqual(0, len(schema.answer.Answer.objects()))
 
-
+        ##########
+        # TEST ASSIGNING QUESTIONS THAT CAN HAVE THE SAME WORKER DO IT
+        # MULTIPLE TIMES
+        ##########
+        test_task3 = dict(task_name = uuid.uuid1().hex,
+                          task_description = 'test task 3',
+                          requester_id = str(self.test_requester.id))
         
+        rv = self.app.put('/tasks', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(test_task3))
+        self.assertEqual(200, rv.status_code)
 
+        task_id3 = json.loads(rv.data)['task_id']
+        self.assertEqual(200, rv.status_code)
+            
+        test_question4_name = uuid.uuid1().hex
+        test_question4_description = "q4 desc"
+        test_question4 = dict(question_name=test_question4_name,
+                              question_description=test_question4_description,
+                              question_data='231',
+                              answers_per_question = 10,
+                              task_id=task_id3,
+                              requester_id = str(self.test_requester.id),
+                              unique_workers = False)
+
+        rvq = self.app.put('/questions', content_type='application/json',
+                           data=json.dumps(test_question4))
+        test_question4_id = json.loads(rvq.data)['question_id']
+
+        wt_pair = dict(worker_id=test_worker_id,
+                       worker_source=test_worker_source,
+                       task_id=task_id3,
+                       requester_id=str(self.test_requester.id),
+                       strategy='min_answers')
+                
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        assign = json.loads(rv.data)['question_name']
+
+        test_answer = dict(question_name=assign,
+                           requester_id = str(self.test_requester.id),
+                           task_id = task_id3,
+                           worker_id=test_worker_id,
+                           worker_source=test_worker_source,
+                           value="mahler was a bahler 1")        
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(200, rv.status_code)
+        get_answer = json.loads(rv.data)
+        self.assertEqual(get_answer['value'], "mahler was a bahler 1")
+
+
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        assign = json.loads(rv.data)['question_name']
+
+        test_answer = dict(question_name=assign,
+                           requester_id = str(self.test_requester.id),
+                           task_id = task_id3,
+                           worker_id=test_worker_id,
+                           worker_source=test_worker_source,
+                           value="mahler was a bahler 2")        
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(200, rv.status_code)
+        get_answer = json.loads(rv.data)
+        self.assertEqual(get_answer['value'], "mahler was a bahler 2")
+
+        answer_get_query = dict(requester_id=str(self.test_requester.id),
+                                task_id = task_id3)
+
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query))
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(2, len(answers))
+        answer_value_1 = 0
+        answer_value_2 = 0
+        for answer in answers:
+            if answer['value'] == "mahler was a bahler 1":
+                answer_value_1 += 1
+            if answer['value'] == "mahler was a bahler 2":
+                answer_value_2 += 1
+                
+        self.assertEqual(answer_value_1, 1)
+        self.assertEqual(answer_value_2, 1)
+
+        #Make sure that the same worker cant be assigned the same question
+        #twice if the unique_workers flag is set.
+        test_task4 = dict(task_name = uuid.uuid1().hex,
+                          task_description = 'test task 4',
+                          requester_id = str(self.test_requester.id))
+        
+        rv = self.app.put('/tasks', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(test_task4))
+        self.assertEqual(200, rv.status_code)
+
+        task_id4 = json.loads(rv.data)['task_id']
+        self.assertEqual(200, rv.status_code)
+            
+        test_question5_name = uuid.uuid1().hex
+        test_question5_description = "q5 desc"
+        test_question5 = dict(question_name=test_question4_name,
+                              question_description=test_question4_description,
+                              question_data='beethoven',
+                              answers_per_question = 10,
+                              task_id=task_id4,
+                              requester_id = str(self.test_requester.id))
+
+        rvq = self.app.put('/questions', content_type='application/json',
+                           data=json.dumps(test_question5))
+        test_question5_id = json.loads(rvq.data)['question_id']
+
+        wt_pair = dict(worker_id=test_worker_id,
+                       worker_source=test_worker_source,
+                       task_id=task_id4,
+                       requester_id=str(self.test_requester.id),
+                       strategy='min_answers')
+                
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        assign = json.loads(rv.data)['question_name']
+
+        test_answer = dict(question_name=assign,
+                           requester_id = str(self.test_requester.id),
+                           task_id = task_id4,
+                           worker_id=test_worker_id,
+                           worker_source=test_worker_source,
+                           value="bready mcbreadface")        
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(200, rv.status_code)
+        get_answer = json.loads(rv.data)
+        self.assertEqual(get_answer['value'],  "bready mcbreadface")
+
+
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        self.assertIn('error', rv.data)
+        
         
     def test_populate_db(self):
         # Start with clean DB for sanity

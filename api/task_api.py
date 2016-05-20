@@ -117,7 +117,8 @@ class TaskListApi(Resource):
             valid_answers = question.get('valid_answers',[])
             answers_per_question = question.get('answers_per_question',
                                                 task_answers_per_question)
-            
+            unique_workers = question.get('unique_workers', True)
+
 
             questionDocument = Question(name = question_name,
                                         description = question_description,
@@ -126,7 +127,8 @@ class TaskListApi(Resource):
                                         task = task,
                                         requester = requester,
                                         answers_per_question =
-                                        answers_per_question)
+                                        answers_per_question,
+                                        unique_workers = unique_workers)
 
             questionDocuments.append(questionDocument)
         

@@ -16,3 +16,5 @@ class Question(db.Document):
     inference_results = db.DictField()
 
     answers_per_question = db.IntField()
+
+    unique_workers = db.BooleanField()

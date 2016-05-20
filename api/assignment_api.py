@@ -175,23 +175,23 @@ class NextQuestionApi(Resource):
         task_questions = app.redis.zrange(task_questions_var, 0, -1)
         for question in task_questions:
 
-            #Only assign a question if the worker has not been assigned it
+            #If the worker has not done it before, assign it.
+            #Otherwise, if the question allows for
+            #multiple answers from the same worker,
+            #assign it.             
             if not app.redis.sismember(worker_assignments_var, question):
-                
-                question_obj = schema.question.Question.objects.get(
-                    id=question)
-
-                if question_obj.answers_per_question:
-                    if app.redis.zscore(task_questions_var, question) < question_obj.answers_per_question:
-                        chosen_question = question
-                        break
-                else:
+                chosen_question = question
+                break
+            else:
+                question_obj = schema.question.Question.objects.get(id=question)
+                if not question_obj.unique_workers:    
                     chosen_question = question
+                    break
 
-        redis_chosen_question=chosen_question
+                    
 
-        if redis_chosen_question is None:
+        if chosen_question is None:
             return None
         else:
             return schema.question.Question.objects.get(
-                id=redis_chosen_question)
+                id=chosen_question)
