@@ -13,6 +13,8 @@ from flask.json import jsonify
 from util import requester_token_match, requester_token_match_and_task_match, clear_task_from_redis
 import json
 import datetime
+from redis.exceptions import WatchError
+
 
 task_parser = reqparse.RequestParser()
 task_parser.add_argument('requester_id', type=str, required=True)
@@ -142,7 +144,8 @@ class TaskListApi(Resource):
                 questionDocument.save()
                 #REDIS update 
                 # -add this question to the queue
-                app.redis.zadd(redis_get_task_queue_var(task.id, 'min_answers'), 0, str(questionDocument.id))
+                app.redis.zadd(redis_get_task_queue_var(task.id, 'min_answers'),
+                               0, str(questionDocument.id))
                 question_id_list.append(str(questionDocument.id))
             except Exception as err:
                 error_class = err.__class__.__name__

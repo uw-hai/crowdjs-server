@@ -13,6 +13,8 @@ import json
 import random
 from util import requester_token_match, requester_token_match_and_task_match, get_or_insert_worker, get_alive_answers, requester_task_match
 import sys, traceback
+from redis.exceptions import WatchError
+
 
 nextq_parser = reqparse.RequestParser()
 #TODO:
@@ -155,7 +157,7 @@ class NextQuestionApi(Resource):
                     #If the worker has not done it before, assign it.
                     #Otherwise, if the question allows for
                     #multiple answers from the same worker,
-                    #assign it.             
+                    #assign it.
                     if not pipe.sismember(worker_assignments_var, question):
                         chosen_question = question
                         break

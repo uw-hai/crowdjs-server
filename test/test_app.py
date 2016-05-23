@@ -180,7 +180,10 @@ class AppTestCase(unittest.TestCase):
                               task_id=task_id2,
                               requester_id = str(self.test_requester.id))
 
-        rvq = self.app.put('/questions', content_type='application/json', data=json.dumps(test_question3))
+        rvq = self.app.put('/questions', content_type='application/json',
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key},
+                           data=json.dumps(test_question3))
         test_question3_id = json.loads(rvq.data)['question_id']
 
         # Check that our specific question was added to the task
@@ -957,7 +960,9 @@ class AppTestCase(unittest.TestCase):
                               unique_workers = False)
 
         rvq = self.app.put('/questions', content_type='application/json',
-                           data=json.dumps(test_question4))
+                           data=json.dumps(test_question4),
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key})
         test_question4_id = json.loads(rvq.data)['question_id']
 
         wt_pair = dict(worker_id=test_worker_id,
@@ -1041,15 +1046,17 @@ class AppTestCase(unittest.TestCase):
             
         test_question5_name = uuid.uuid1().hex
         test_question5_description = "q5 desc"
-        test_question5 = dict(question_name=test_question4_name,
-                              question_description=test_question4_description,
+        test_question5 = dict(question_name=test_question5_name,
+                              question_description=test_question5_description,
                               question_data='beethoven',
                               answers_per_question = 10,
                               task_id=task_id4,
                               requester_id = str(self.test_requester.id))
 
         rvq = self.app.put('/questions', content_type='application/json',
-                           data=json.dumps(test_question5))
+                           data=json.dumps(test_question5),
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key})
         test_question5_id = json.loads(rvq.data)['question_id']
 
         wt_pair = dict(worker_id=test_worker_id,
@@ -1082,7 +1089,216 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(wt_pair))
         self.assertEqual(200, rv.status_code)
         self.assertIn('error', rv.data)
+
+        task_queue_var = redis_get_task_queue_var(task_id4,
+                                                  'min_answers')
+        priority = app.redis.zscore(task_queue_var, test_question5_id)
+        self.assertEqual(1, priority)
         
+        ###########
+        # TEST PUTTING QUESTIONS BACK INTO PRIORITY QUEUE AND LOWERING PRIORITY
+        # MULTIPLE TIMES
+        ############
+        # First try to requeue question5 with worker1. Error, because
+        # worker completed question5.
+        # Assign question 6 to worker 1.
+        # Requeue question 6 with worker 1
+        # Set budget of question 5 and 6 from 10 to 1
+        # Assign question 6 to worker 1 again
+        # Requeue question 6 with worker 1 again.
+        # Assign question 6 to worker 1 again.
+        # Assign question 7 to worker 2.
+        # Requeue both question 6 and 7.
+        #############
+        requeue = dict(requester_id = str(self.test_requester.id),
+                       task_id = task_id4,
+                       question_ids = [test_question5_id,],
+                       worker_ids = [test_worker_id,],
+                       worker_source = 'mturk',
+                       strategy='min_answers')
+
+        print "Requeueing"
+        rv = self.app.post('/requeue',
+                           content_type='application/json',
+                           data=json.dumps(requeue),
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key})
+        self.assertEqual(200, rv.status_code)
+        self.assertIn('error', json.loads(rv.data))
+
+
+        task_queue_var = redis_get_task_queue_var(task_id4,
+                                                  'min_answers')
+        priority = app.redis.zscore(task_queue_var, test_question5_id)
+        self.assertEqual(1, priority)
+
+        
+        test_question6_name = uuid.uuid1().hex
+        test_question6_description = "q6 desc"
+        test_question6 = dict(question_name=test_question6_name,
+                              question_description=test_question6_description,
+                              question_data='xiao ling',
+                              answers_per_question = 10,
+                              task_id=task_id4,
+                              requester_id = str(self.test_requester.id))
+
+        rvq = self.app.put('/questions', content_type='application/json',
+                           data=json.dumps(test_question6),
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key})
+        test_question6_id = json.loads(rvq.data)['question_id']
+
+        wt_pair = dict(worker_id=test_worker_id,
+                       worker_source=test_worker_source,
+                       task_id=task_id4,
+                       requester_id=str(self.test_requester.id),
+                       strategy='min_answers')
+                
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        assign = json.loads(rv.data)['question_name']
+
+        task_queue_var = redis_get_task_queue_var(task_id4,
+                                                  'min_answers')
+        priority = app.redis.zscore(task_queue_var, test_question6_id)
+        self.assertEqual(1, priority)
+
+        self.assertEqual(1, len(schema.answer.Answer.objects(
+            task=task_id4,
+            question=test_question6_id)))
+
+        requeue = dict(requester_id = str(self.test_requester.id),
+                       task_id = task_id4,
+                       question_ids = [test_question6_id,],
+                       worker_ids = [test_worker_id,],
+                       worker_source = 'mturk',
+                       strategy='min_answers')
+
+        print "Requeueing"
+        rv = self.app.post('/requeue',
+                           content_type='application/json',
+                           data=json.dumps(requeue),
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key})
+        self.assertEqual(200, rv.status_code)
+        self.assertNotIn('error', json.loads(rv.data))
+
+        priority = app.redis.zscore(task_queue_var, test_question6_id)
+        self.assertEqual(0, priority)
+  
+        self.assertEqual(0, len(schema.answer.Answer.objects(
+            task=task_id4,
+            question=test_question6_id)))
+
+        
+        set_budget_data = dict(task_id=task_id4,
+                               requester_id=str(self.test_requester.id),
+                               answers_per_question=1)
+        rv = self.app.post('/tasks/set_budget',
+                           content_type='application/json',
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key},
+                           data=json.dumps(set_budget_data))
+
+        self.assertEqual(1, len(app.redis.zrange(task_queue_var, 0, -1)))
+
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        print json.loads(rv.data)
+        assign = json.loads(rv.data)['question_name']
+
+        self.assertEqual(1, len(schema.answer.Answer.objects(
+            task=task_id4,
+            question=test_question6_id)))
+
+        priority = app.redis.zscore(task_queue_var, test_question6_id)
+        self.assertEqual(None, priority)
+
+        print "Requeueing"
+        rv = self.app.post('/requeue',
+                           content_type='application/json',
+                           data=json.dumps(requeue),
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key})
+        self.assertEqual(200, rv.status_code)
+        self.assertNotIn('error', json.loads(rv.data))
+
+        priority = app.redis.zscore(task_queue_var, test_question6_id)
+        self.assertEqual(0, priority)
+
+        self.assertEqual(0, len(schema.answer.Answer.objects(
+            task=task_id4,
+            question=test_question6_id)))
+                
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        print json.loads(rv.data)
+        assign = json.loads(rv.data)['question_name']
+
+        self.assertEqual(1, len(schema.answer.Answer.objects(
+            task=task_id4,
+            question=test_question6_id)))
+
+        priority = app.redis.zscore(task_queue_var, test_question6_id)
+        self.assertEqual(None, priority)
+
+        test_question7_name = uuid.uuid1().hex
+        test_question7_description = "q7 desc"
+        test_question7 = dict(question_name=test_question7_name,
+                              question_description=test_question6_description,
+                              question_data='xiao ling the second',
+                              answers_per_question = 10,
+                              task_id=task_id4,
+                              requester_id = str(self.test_requester.id))
+
+        rvq = self.app.put('/questions', content_type='application/json',
+                           data=json.dumps(test_question7),
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key})
+        test_question7_id = json.loads(rvq.data)['question_id']
+
+        wt_pair = dict(worker_id=test_worker_id_2,
+                       worker_source=test_worker_source,
+                       task_id=task_id4,
+                       requester_id=str(self.test_requester.id),
+                       strategy='min_answers')
+                
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        assign = json.loads(rv.data)['question_name']
+
+        priority = app.redis.zscore(task_queue_var, test_question7_id)
+        self.assertEqual(1, priority)
+
+        print "Requeueing 2 questions"
+        requeue = dict(requester_id = str(self.test_requester.id),
+                       task_id = task_id4,
+                       question_ids = [test_question6_id, test_question7_id,],
+                       worker_ids = [test_worker_id, test_worker_id_2],
+                       worker_source = 'mturk',
+                       strategy='min_answers')
+
+        rv = self.app.post('/requeue',
+                           content_type='application/json',
+                           data=json.dumps(requeue),
+                           headers={'Authentication-Token':
+                                    self.test_requester_api_key})
+        self.assertEqual(200, rv.status_code)
+        self.assertNotIn('error', json.loads(rv.data))
+
+        priority = app.redis.zscore(task_queue_var, test_question6_id)
+        self.assertEqual(0, priority)
+
+        priority = app.redis.zscore(task_queue_var, test_question7_id)
+        self.assertEqual(0, priority)
         
     def test_populate_db(self):
         # Start with clean DB for sanity
@@ -1153,16 +1369,21 @@ class AppTestCase(unittest.TestCase):
                                 task_id = task2_id, requester_id = requester2_id, valid_answers = ["animal", "vegetable", "mineral"])
 
         rv = self.app.put('/questions', content_type='application/json',
-                          data=json.dumps(question3))
+                          data=json.dumps(question3),
+                          headers={'Authentication-Token': requester2_token})
         self.assertEqual(200, rv.status_code)
         question3_id = json.loads(rv.data)['question_id']
         
-        rv = self.app.put('/questions', content_type='application/json', data=json.dumps(question4))
+        rv = self.app.put('/questions', content_type='application/json',
+                          data=json.dumps(question4),
+                          headers={'Authentication-Token': requester2_token})
         self.assertEqual(200, rv.status_code)
         question4_id = json.loads(rv.data)['question_id']
         
         
-        rv = self.app.put('/questions', content_type='application/json', data=json.dumps(question5))
+        rv = self.app.put('/questions', content_type='application/json',
+                          data=json.dumps(question5),
+                          headers={'Authentication-Token': requester2_token})
         self.assertEqual(200, rv.status_code)
         question5_id = json.loads(rv.data)['question_id']
 

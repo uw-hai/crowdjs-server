@@ -13,6 +13,8 @@ from util import get_or_insert_worker, requester_token_match_and_task_match, req
 import datetime
 import json
 import sys, traceback
+from redis.exceptions import WatchError
+
 
 answer_parser = reqparse.RequestParser()
 answer_parser.add_argument('requester_id', type=str, required=True)

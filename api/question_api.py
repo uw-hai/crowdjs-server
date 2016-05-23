@@ -9,7 +9,8 @@ import schema.answer
 import json
 import random
 from util import requester_token_match, requester_token_match_and_task_match
-
+from mongoengine.queryset import DoesNotExist
+from redis.exceptions import WatchError
 
 question_parser = reqparse.RequestParser()
 question_parser.add_argument('requester_id', type=str, required=True)
@@ -27,6 +28,20 @@ question_parser.add_argument('unique_workers', type=bool, required=False,
 question_get_parser = reqparse.RequestParser()
 question_get_parser.add_argument('requester_id', type=str, required=True)
 question_get_parser.add_argument('task_id', type=str, required=False)
+
+
+question_requeue_parser = reqparse.RequestParser()
+question_requeue_parser.add_argument('requester_id', type=str, required=True)
+question_requeue_parser.add_argument('task_id', type=str, required=True)
+question_requeue_parser.add_argument('question_ids', type=list,
+                                     location='json',required=True)
+question_requeue_parser.add_argument('worker_ids', type=list,
+                                     location='json',required=True)
+question_requeue_parser.add_argument('worker_source', type=str,
+                                     required=True)
+question_requeue_parser.add_argument('strategy', type=str, required=True)
+
+
 
 class QuestionApi(Resource):
     def get(self, question_id):
@@ -69,6 +84,7 @@ class QuestionListApi(Resource):
 
         return json.loads(questions.to_json())
 
+    @auth_token_required
     def put(self):
         """
         Create a new question.
@@ -87,11 +103,15 @@ class QuestionListApi(Resource):
 
         # check references
         requester_id = args['requester_id']
-        requester = schema.requester.Requester.objects.get_or_404(
-            id=requester_id)
 
         task_id = args['task_id']
-        task = schema.task.Task.objects.get_or_404(id=task_id)
+        if not requester_token_match_and_task_match(requester_id, task_id):
+            return {"error" : "Sorry, your task_id is not correct"}
+
+        task = schema.task.Task.objects.get(id=task_id)
+        requester = schema.requester.Requester.objects.get(
+            id=requester_id)
+
 
         questionDocument = schema.question.Question(
             name = question_name,
@@ -111,6 +131,91 @@ class QuestionListApi(Resource):
 
         return {'question_id' : str(questionDocument.id)}
 
+
+class QuestionRequeueApi(Resource):
+
+    #Requeue an assignment because a worker never did it
+    #This should be called when the time for a assignment expires.
+    #That means putting it back on the queue if it's not on the queue.
+    @auth_token_required
+    def post(self):
+        
+        args = question_requeue_parser.parse_args()
+
+        #preliminary checks. make sure all ids exist, the workers have
+        #been assigned to the question, and the questions are in the task.
+        
+        task_id = args['task_id']
+        requester_id = args['requester_id']
+
+        if not requester_token_match_and_task_match(requester_id, task_id):
+            return {"error" : "Sorry, your task_id is not correct"}
+
+        question_ids = args['question_ids']
+        worker_ids = args['worker_ids']
+        worker_source = args['worker_source']
+
+        num_question_ids = len(question_ids)
+        
+        for worker_id, question_id in zip(worker_ids, question_ids):
+            try:
+                question = schema.question.Question.objects.get(
+                    id=question_id,
+                    task=task_id)
+                worker = schema.worker.Worker.objects.get(
+                    platform_id = worker_id,
+                    platform_name = worker_source)
+                answer = schema.answer.Answer.objects.get(
+                    task=task_id,
+                    question = question,
+                    worker = worker,
+                    status = 'Assigned')
+            except DoesNotExist:
+                return {'error': 'Sorry, one of the question_id/worker_id pairsyou have provided is not eligible for requeueing'}
+
+        
+        strategy = args['strategy']
+        
+        task_questions_var = redis_get_task_queue_var(task_id, strategy)
+
+        while 1:
+            for (question_id, worker_id) in zip(question_ids, worker_ids):
+                worker = schema.worker.Worker.objects.get(
+                    platform_id = worker_id,
+                    platform_name = worker_source)
+
+                worker_assignments_var = redis_get_worker_assignments_var(
+                    task_id,
+                    worker.id)
+                try:
+                    pipe = app.redis.pipeline()
+                    pipe.watch(task_questions_var)
+                    pipe.watch(worker_assignments_var)
+
+                    question = schema.question.Question.objects.get(
+                        id=question_id,
+                        task=task_id)
+
+                    if pipe.zscore(task_questions_var, question_id) == None:
+                        pipe.zadd(task_questions_var,
+                                  question.answers_per_question-1,
+                                  question_id)
+                    else:
+                        pipe.zincrby(task_questions_var, question_id, -1)
+
+                    answer = schema.answer.Answer.objects.get(
+                        task=task_id,
+                        question = question_id,
+                        worker = worker,
+                        status = 'Assigned').delete()
+                    pipe.srem(worker_assignments_var, question_id)
+                except WatchError:
+                    continue
+                finally:
+                    pipe.reset()
+            break
+        return {'success' : '%s questions requeued' % num_question_ids}
+    
 class QuestionAnswersApi(Resource):
     def get(self, question_id):
         """
@@ -118,3 +223,4 @@ class QuestionAnswersApi(Resource):
         """
         answers = schema.answer.Answer.objects(question=question_id)
         return json.loads(answers.to_json())
+                                                                                                                                                                                      
