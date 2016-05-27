@@ -22,11 +22,16 @@ task_parser.add_argument('task_name', type=str, required=True)
 task_parser.add_argument('task_description', type=str, required=True)
 task_parser.add_argument('questions', type=list, location='json',
                          required=False)
-task_parser.add_argument('data', type=str, required=False)
+task_parser.add_argument('data', type=str, required=False, default='')
 task_parser.add_argument('answers_per_question', type=int, required=False,
                          default = 1)
 task_parser.add_argument('total_task_budget', type=int, required=False,
                          default = -1)
+
+task_data_parser = reqparse.RequestParser()
+task_data_parser.add_argument('task_id', type=str, required=True)
+task_data_parser.add_argument('requester_id', type=str, required=True)
+task_data_parser.add_argument('data', type=str, required=False)
 
 
 tasklistapi_get_parser = reqparse.RequestParser()
@@ -168,18 +173,38 @@ class TaskListApi(Resource):
         return ret
 
 class TaskApi(Resource):
-    def get(self, task_id):
+    def get(self):
         """
         Get data of specific task.
         """
-        print "Getting Task"
-        task = Task.objects.get_or_404(id=task_id)
-        questions = Question.objects(task=task_id)
-        #TODO currently dump in the task's questions - maybe think this through more
-        d = json.loads(task.to_json())
-        d['questions'] = json.loads(questions.to_json())
-        return d
+        args = task_data_parser.parse_args()
+        requester_id = args['requester_id']
+        task_id = args['task_id']
+        
+        task = Task.objects.get(id=task_id, requester=requester_id)
+        return {'data': task.data}
 
+    def post(self):
+        """
+        Modify data of specific task.
+        """
+        args = task_data_parser.parse_args()
+        requester_id = args['requester_id']
+        task_id = args['task_id']
+        data = args['data']
+
+        if data == None:
+            return {'error' : 'You forgot the data field'}
+
+        task = Task.objects.get(id=task_id, requester=requester_id)
+        task.data = data
+        task.save()
+
+        return {'success': 'Task data modified to be %s' % data}
+
+        
+
+    
 class TaskQuestionsApi(Resource):
     def get(self, task_id):
         """

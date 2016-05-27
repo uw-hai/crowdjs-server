@@ -123,12 +123,45 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(1, len(schema.task.Task.objects))
 
         db_first_task = schema.task.Task.objects.first()
-
         self.assertEqual(str(db_first_task.id), task_id)
-        rv = self.app.get('/tasks/%s' % task_id)
-        get_task = json.loads(rv.data)
+
+        #check that the task has no task data in it
+        rv = self.app.get('/task_data?task_id=%s&requester_id=%s' % (
+            task_id, str(self.test_requester.id)))
         self.assertEqual(200, rv.status_code)
-        self.assertEqual(task_id, get_task['_id']['$oid'])
+        get_task_data = json.loads(rv.data)['data']
+        self.assertEqual('', get_task_data)
+
+        #Try to change task data without data field
+        change_data_json = dict(task_id = task_id,
+                                requester_id = str(self.test_requester.id))
+        rv = self.app.post('/task_data', content_type='application/json',
+                           data=json.dumps(change_data_json))
+        self.assertEqual(200, rv.status_code)
+        self.assertIn('error', json.loads(rv.data))
+
+        #check that the task has no task data in it
+        rv = self.app.get('/task_data?task_id=%s&requester_id=%s' % (
+            task_id, str(self.test_requester.id)))
+        self.assertEqual(200, rv.status_code)
+        get_task_data = json.loads(rv.data)['data']
+        self.assertEqual('', get_task_data)
+
+        #Try to change task data 
+        change_data_json = dict(task_id = task_id,
+                                requester_id = str(self.test_requester.id),
+                                data = 'Shoehorn')
+        rv = self.app.post('/task_data', content_type='application/json',
+                           data=json.dumps(change_data_json))
+        self.assertEqual(200, rv.status_code)
+        self.assertIn('success', json.loads(rv.data))
+
+        #check that the task has no task data in it
+        rv = self.app.get('/task_data?task_id=%s&requester_id=%s' % (
+            task_id, str(self.test_requester.id)))
+        self.assertEqual(200, rv.status_code)
+        get_task_data = json.loads(rv.data)['data']
+        self.assertEqual('Shoehorn', get_task_data)
 
         #Add a second task
         test_task2 = dict(task_name = uuid.uuid1().hex,
@@ -187,12 +220,12 @@ class AppTestCase(unittest.TestCase):
         test_question3_id = json.loads(rvq.data)['question_id']
 
         # Check that our specific question was added to the task
-        rv = self.app.get('/tasks/%s' % task_id2)
+        rv = self.app.get('/tasks/%s/questions' % task_id2)
         self.assertEqual(200, rv.status_code)
         get_task = json.loads(rv.data)
-        self.assertEqual(1, len(get_task['questions']))
+        self.assertEqual(1, len(get_task))
         #print get_task['questions'], type(get_task['questions'])
-        saved_q3_id = get_task['questions'][0]['_id']['$oid']
+        saved_q3_id = get_task[0]['_id']['$oid']
         self.assertEqual(test_question3_id, saved_q3_id)
 
         # Check integrity of question

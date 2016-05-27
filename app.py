@@ -149,7 +149,7 @@ api.add_resource(AnswerApi, '/answers/<answer_id>') #UNSECURED
 api.add_resource(AnswerListApi, '/answers') #DOES NOT REQUIRE SECURITY
 
 from api.task_api import *
-api.add_resource(TaskApi, '/tasks/<task_id>') #UNSECURED
+api.add_resource(TaskApi, '/task_data') #UNSECURED
 api.add_resource(TaskListApi, '/tasks') 
 api.add_resource(TaskQuestionsApi, '/tasks/<task_id>/questions') #UNSECURED
 api.add_resource(TaskSetBudget, '/tasks/set_budget')

@@ -7,10 +7,6 @@ class Task(db.Document):
 
     #This field is for the requester to store whatever they want.
     data = db.StringField()
-
-    #These will get called everytime an answer to this task is submitted.
-    global_answer_callback = db.StringField()
-    global_answer_callback_url = db.StringField()
     
     total_task_budget = db.IntField()
     
