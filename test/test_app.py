@@ -385,15 +385,30 @@ class AppTestCase(unittest.TestCase):
         #Three assignments have been made at this point. That means
         #there should be 3 answers awaiting completion.
         answer_get_query = dict(requester_id=str(self.test_requester.id),
-                                task_id = task_id)
+                                task_id = task_id,
+                                completed=False)
+        answer_get_query_completed = dict(
+            requester_id=str(self.test_requester.id),
+            task_id = task_id)
+
         answer_get_query_no_task_id = dict(
-            requester_id=str(self.test_requester.id))
+            requester_id=str(self.test_requester.id),
+            completed=False)
         answer_get_query_wrong_task_id = dict(
             requester_id=str(self.test_requester.id),
-            task_id=task_id2[::-1])
+            task_id=task_id2[::-1],
+            completed=False)
         
         rv = self.app.get('/answers', content_type='application/json')
         self.assertEqual(401, rv.status_code)
+
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_completed))
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(0, len(answers))
 
         rv = self.app.get('/answers', content_type='application/json',
                           headers={'Authentication-Token':
@@ -478,6 +493,15 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         answers = json.loads(rv.data)
         self.assertEqual(3, len(answers))
+
+        #There should be 1 completed answer
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_completed))
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(1, len(answers))
 
         # check that answer value is correct and was added to the question
         # for a single Answer
@@ -599,6 +623,14 @@ class AppTestCase(unittest.TestCase):
         answers = json.loads(rv.data)
         self.assertEqual(4, len(answers))
 
+        #There should  be 2 completed answers for task 1
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_completed))
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(2, len(answers))
 
         # check that answer value is correct and was added to the question
         # for a single Answer
@@ -684,7 +716,16 @@ class AppTestCase(unittest.TestCase):
         task_queue = app.redis.zrange(task_queue_var, 0, -1)
         self.assertEqual(1, len(task_queue))
 
-        
+
+        #There should be 4 completed answers
+        rv = self.app.get('/answers', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(answer_get_query_completed))
+        self.assertEqual(200, rv.status_code)
+        answers = json.loads(rv.data)
+        self.assertEqual(4, len(answers))
+
         #There should now be 5 answers
         rv = self.app.get('/answers', content_type='application/json',
                           headers={'Authentication-Token':

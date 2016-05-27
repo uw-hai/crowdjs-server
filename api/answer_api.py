@@ -30,6 +30,8 @@ answer_parser.add_argument('is_alive', type=flask.ext.restful.inputs.boolean,
 answer_get_parser = reqparse.RequestParser()
 answer_get_parser.add_argument('requester_id', type=str, required=True)
 answer_get_parser.add_argument('task_id', type=str, required=False)
+answer_get_parser.add_argument('completed', type=bool, required=False,
+                               default = True)
 
 class AnswerListApi(Resource):
 
@@ -41,18 +43,32 @@ class AnswerListApi(Resource):
         args = answer_get_parser.parse_args()
         requester_id = args['requester_id']
         task_id = args['task_id']
+        completed = args['completed']
+
         if task_id == None:
             if not requester_token_match(requester_id):
                 return "Sorry, your api token is not correct"
             requester = Requester.objects.get_or_404(id=requester_id)
-            answers = Answer.objects(requester = requester)
+            if completed:
+                answers = Answer.objects(requester = requester,
+                                         status='Completed')
+            else:
+                answers = Answer.objects(requester = requester)
+                
         else:
             if not requester_token_match_and_task_match(requester_id, task_id):
                 return "Sorry, your api token is not correct"
 
             requester = Requester.objects.get_or_404(id=requester_id)
             task = Task.objects.get_or_404(id=task_id)
-            answers = Answer.objects(requester = requester, task = task)
+
+            if completed:
+                answers = Answer.objects(requester = requester, task = task,
+                                         status='Completed')
+            else:
+                answers = Answer.objects(requester = requester, task = task)
+
+                
             
         return json.loads(answers.to_json())
 
