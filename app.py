@@ -20,7 +20,8 @@ api = Api(app)
 
 app.config['CORS_HEADERS'] = 'Content-Type'
 cors = CORS(app, resources={"/assign_next_question": {"origins": "*"},
-                            "/answers":  {"origins": "*"}})
+                            "/answers":  {"origins": "*"},
+                            "/task_data": {"origins" : "*"}})
 
 
 import schema.requester
