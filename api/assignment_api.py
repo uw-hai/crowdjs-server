@@ -101,7 +101,8 @@ class NextQuestionApi(Resource):
             
             answer.save()
         return {'question_name' : str(question.name),
-                'question_id' : str(question.id)}
+                'question_id' : str(question.id),
+                'question_data' : str(question.data)}
 
     ####
     # NOT FULLY TESTED
