@@ -72,7 +72,8 @@ class NextQuestionApi(Resource):
 
         if len(current_assignment) == 1:
             return {'question_name' : current_assignment[0].question.name,
-                    'question_id': str(current_assignment[0].question.id)}
+                    'question_id': str(current_assignment[0].question.id),
+                    'question_data' : str(current_assignment[0].question.data)}
 
         #If the task budget has been reached, then make no more assignemnts
         if (len(schema.answer.Answer.objects(task=task, is_alive=True)) >=
