@@ -80,14 +80,30 @@ class TaskListApi(Resource):
 
     @auth_token_required
     def put(self):
-        """
-        Create a new task.
+        """Create a new task.
 
-        args:
-            questions (optional list): 
-                Questions from this list will be inserted  and
-                their corresponding IDs will be returned in the same order.
-                i.e. questions= [A,B,C] -> return [A.id, B.id, C.id]
+        Can include batch of questions.
+
+        :param str requester_id: req_id
+        :param str task_name: title of the task
+        :param str task_description: longer description of the task contents
+        :param list questions: optional. questions from this list will be inserted and their corresponding IDs will be returned in the same order as a "question_ids" array
+        :param str data: optional. could store arbitrary data used in the task.
+        :param int answers_per_question: optional.  budget per question.
+        :param int total_task_budget: optional.  budget.
+
+        :statuscode 200: task has been added successfully
+        :statuscode 401: authentication error of some sort
+
+        **Example response:**
+
+        .. code-block:: json
+
+            {
+                "task_id": "11111",
+                "question_ids": ["q1_id", "q2_id", "q3_id"]
+            }
+
         """
 
         args = task_parser.parse_args()
