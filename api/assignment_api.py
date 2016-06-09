@@ -41,6 +41,17 @@ class NextQuestionApi(Resource):
 
         """
         Assign a question from the given task to the given worker.
+
+        **Example response:**
+
+        .. code-block:: json
+
+            {
+                "question_name" : "999999",
+                "question_id" : "1234",
+                "question_data" : "some q data"
+            }
+
         """
 
         args = nextq_parser.parse_args()

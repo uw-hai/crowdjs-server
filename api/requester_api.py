@@ -20,7 +20,7 @@ class RequesterListApi(Resource):
         Create a new requester.
 
         :param str email: requester email address
-        :param str password: requester email address
+        :param str password: requester password
 
         :returns: JSON with requester_id string to use in future requests.
 
