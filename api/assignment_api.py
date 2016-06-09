@@ -39,8 +39,14 @@ class NextQuestionApi(Resource):
     
     def get(self):
 
-        """
-        Assign a question from the given task to the given worker.
+        """Assign a question from the given task to the given worker.
+
+        :param str worker_id: worker's platform id
+        :param str worker_source: i.e. mturk
+        :param str task_id:
+        :param str requester_id: id of requester who owns this task
+        :param str strategy: optional, defaults to 'min_answers' assignment strategy. other choices: random, pomdp, ...
+        :param bool preview: optional, if true then the question id will be returned but no assignment will be created.
 
         **Example response:**
 
