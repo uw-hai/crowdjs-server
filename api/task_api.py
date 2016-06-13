@@ -95,7 +95,28 @@ class TaskListApi(Resource):
         :statuscode 200: task has been added successfully
         :statuscode 401: authentication error of some sort
 
+        **Example request:**
+
+        PUT /tasks
+        
+        .. code-block:: json
+        
+            {
+                "requester_id": "575c85277435410a9a652c4c",
+                "task_name": "077d1626301d11e68b28acbc32c379b7",
+                "task_description": "test task with 2 questions", 
+                "questions": [
+                                {"requester_id": "575c85277435410a9a652c4c", "question_name": "077be600301d11e696acacbc32c379b7", "question_description": "test question 1", "question_data": "23"}, 
+                                {"requester_id": "575c85277435410a9a652c4c", "question_name": "077d1535301d11e6a885acbc32c379b7", "question_description": "test question 2", "question_data": "42"}
+                             ],
+                "data": "this data is arbitrary",
+                "answers_per_question": 3,
+                "total_task_budget": 4
+            }
+
         **Example response:**
+
+        HTTP 200 OK
 
         .. code-block:: json
 
