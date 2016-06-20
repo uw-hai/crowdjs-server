@@ -30,15 +30,20 @@ answer_parser.add_argument('is_alive', type=flask.ext.restful.inputs.boolean,
 answer_get_parser = reqparse.RequestParser()
 answer_get_parser.add_argument('requester_id', type=str, required=True)
 answer_get_parser.add_argument('task_id', type=str, required=False)
-answer_get_parser.add_argument('completed', type=bool, required=False,
+answer_get_parser.add_argument('completed', type=flask.ext.restful.inputs.boolean, required=False,
                                default = True)
 
 class AnswerListApi(Resource):
 
     @auth_token_required
     def get(self):
-        """
-        Get list of all answers.
+        """Get list of all answers.
+
+        Can filter by specific task and/or whether answer is completed.
+
+        :param str requester_id: your requester id.
+        :param str task_id: optional. Get answers for only this task.
+        :param bool completed: optional. Get only completed answers.
         """
         args = answer_get_parser.parse_args()
         requester_id = args['requester_id']
