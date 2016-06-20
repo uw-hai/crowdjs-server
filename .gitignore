@@ -2,6 +2,7 @@
 .env
 *~
 *.swp
+config.json
 
 # sphinx build folder
 docs/_build/
