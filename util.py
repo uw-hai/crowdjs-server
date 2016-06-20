@@ -38,6 +38,10 @@ def drawWorkerSkill():
     gamma = np.random.normal(1.0, 0.2)
     return gamma
 
+def drawRandomLabel(possible_labels=[0,1]):
+    # choose random label uniformly
+    return np.random.choice(possible_labels)
+
 
 def calcAccuracy(gamma, d):
     return (1.0 / 2) * (1.0 + (1.0 - d) ** gamma)
@@ -52,7 +56,33 @@ def normalize(array):
     return array
 
 
+# Dai/AIJ13 pomdp question belief definitions
+
+def initBelief(numLabelChoices, numDifficulties):
+    """Initialize question belief state over the possible answers and difficulty bins.
+    
+    Uniform over each (label, difficulty) pair and also appends p=0.0 of being 
+    in the terminal (already submitted) state, so returns a C*D+1 length list.
+    """
+    num_nonterminal_states = numDifficulties * numLabelChoices
+    return [1.0/num_nonterminal_states for i in range(num_nonterminal_states)] + [0.0]
+
+
 def updateBelief(prevBelief, action, observation, difficulties, gamma):
+    """Update question belief based on an 'observation' and 'gamma' (worker skill estimate).
+    Uses Dai-AIJ13 paper belief update rules.
+
+    Returns the new belief state.
+
+    Arguments:
+        prevBelief
+        action - ignored
+        observation - must be 0 or 1 (int/bool)
+        difficulties - e.g. list [0.0, 0.1, ... 1.0]
+        gamma - best estimate of skill for the worker providing observation
+    """
+    assert observation == 0 or observation == 1
+
     if prevBelief[-1] == 1.0:
         # in the terminal state, skip
         return prevBelief
