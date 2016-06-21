@@ -12,6 +12,7 @@ def aggregate_task_majority_vote(task_id):
 
     Returns:
         results - dict {q.id : majority_vote_label for each question q}
+        with -1 if there were no votes on the question
     """
     questions = schema.question.Question.objects(task = task_id)
 
@@ -21,9 +22,13 @@ def aggregate_task_majority_vote(task_id):
         answers = schema.answer.Answer.objects(question = question)
         q_id = str(question.id)
         ballot = [answer.value for answer in answers]
-        mv = majorityVote(ballot)[0]
-        print "mv on question = ", q_id, ballot, mv
-        labels[q_id] = mv
+        if len(ballot) == 0:
+            print "mv -1 (no votes) on question = ", q_id, question.name
+            labels[q_id] = -1
+        else:
+            mv = majorityVote(ballot)[0]
+            print "mv on question = ", q_id, question.name, ballot, mv
+            labels[q_id] = mv
 
     print labels
     return labels
