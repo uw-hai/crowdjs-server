@@ -70,10 +70,12 @@ class TaskAggregationApi(Resource):
     
     @auth_token_required
     def put(self, task_id):
-        """
-        Start an aggregation/inference job on this task
-        args: strategy
-        Returns: JSON representation of this job as created
+        """Start an aggregation/inference job on this task
+
+        Returns: JSON representation of this job as created (use ID to look it up later).
+        
+        :param str strategy: optionally specify inference algorithm. 'EM', 'majority_vote' etc.
+        :param str requester_id: req_id.
         """
         # TODO make this POST because it creates a resource
         # TODO would also be nice to return URL location for job
