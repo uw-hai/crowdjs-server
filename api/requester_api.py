@@ -18,6 +18,20 @@ class RequesterListApi(Resource):
     def put(self):
         """
         Create a new requester.
+
+        :param str email: requester email address
+        :param str password: requester password
+
+        :returns: JSON with requester_id string to use in future requests.
+
+        **Example response:**
+
+        .. code-block:: json
+
+            {
+                "requester_id": "12345"
+            }
+
         """
         #TODO password security???
         args = requester_parser.parse_args()

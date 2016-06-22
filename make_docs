@@ -1,0 +1,4 @@
+# run from root dir of server
+cd docs
+make clean; env $(cat ../.env | xargs) make html
+cd ..

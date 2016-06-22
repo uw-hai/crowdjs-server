@@ -2,3 +2,6 @@
 .env
 *~
 *.swp
+
+# sphinx build folder
+docs/_build/

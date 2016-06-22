@@ -73,8 +73,15 @@ class AnswerListApi(Resource):
         return json.loads(answers.to_json())
 
     def put(self):
-        """
-        Create a new answer.
+        """Create a new answer.
+
+        :param str requester_id:
+        :param str task_id:
+        :param str question_name:
+        :param str worker_platform_id:
+        :param str worker_source:
+        :param str value:
+        :param bool is_alive: optional.
         """
         args = answer_parser.parse_args()
 
