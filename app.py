@@ -7,13 +7,17 @@ from flask.ext.security import Security, MongoEngineUserDatastore, login_require
 from flask.ext.security.registerable import register_user
 from flask.ext.mail import Mail
 import redis
+from rq import Queue
 import uuid
+from celery import Celery
 
 app = Flask(__name__)
 
 app.config.from_object(os.environ['APP_SETTINGS'])
 
-#TESTING REDIS
+print "Loading redis, redis queue, mongo"
+#from worker import conn
+#app.rq = Queue(connection = conn)
 app.redis = redis.StrictRedis.from_url(app.config['REDIS_URL'])
 db = MongoEngine(app)
 api = Api(app)
@@ -40,6 +44,24 @@ user_datastore = MongoEngineUserDatastore(db, schema.requester.Requester,
 security = Security(app, user_datastore)
 print "Done loading security datastore. Ready to serve pages."
 sys.stdout.flush()
+
+
+print "Loading Celery"
+def make_celery(app):
+    celery = Celery(app.import_name, backend=app.config['REDIS_URL'],
+                    broker=app.config['REDIS_URL'])
+    celery.conf.update(app.config)
+    TaskBase = celery.Task
+    class ContextTask(TaskBase):
+        abstract = True
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return TaskBase.__call__(self, *args, **kwargs)
+    celery.Task = ContextTask
+    return celery
+celery = make_celery(app)
+app.celery = celery
+
 
 @app.before_first_request
 def setup_logging():

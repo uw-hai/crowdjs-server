@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 class Config(object):
     DEBUG = False
@@ -24,13 +25,31 @@ class Config(object):
     SECURITY_PASSWORD_SALT = 'abcde'
 
     MAIL_SUPPRESS_SEND = True
+
+
+    CELERY_TIMEZONE = 'UTC'
+    CELERY_IMPORTS = ['util']
     
 class DevelopmentConfig(Config):
     DEVELOPMENT = True
     DEBUG = True
     TESTING = True
+    CELERYBEAT_SCHEDULE = {
+        'requeue-every-5-seconds': {
+            'task': 'requeue',
+            'schedule': timedelta(seconds=5),
+            'args': ()
+        },
+    }
 
 class Production(Config):
     DEBUG = False
     DEVELOPMENT = False
     TESTING = False
+    CELERYBEAT_SCHEDULE = {
+        'requeue-every-60-minutes': {
+            'task': 'util.requeue',
+            'schedule': timedelta(minutes=60),
+            'args': ()
+        },
+    }

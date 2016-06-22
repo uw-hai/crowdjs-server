@@ -1,5 +1,6 @@
 from app import app
 from flask.ext.security import login_required, current_user, auth_token_required
+from schema.question import Question
 from schema.worker import Worker
 from schema.answer import Answer
 from schema.task import Task
@@ -7,6 +8,10 @@ from schema.requester import Requester
 from schema.inferenceJob import InferenceJob
 from redis_util import redis_get_worker_assignments_var, redis_get_task_queue_var
 from aggregation import db_inference
+from mongoengine.queryset import DoesNotExist
+from redis.exceptions import WatchError
+import datetime
+
 
 def requester_token_match(requester_id):
     return str(current_user.id) == requester_id
@@ -102,3 +107,89 @@ def start_inference_job(job_id):
         job.save()
     else:
         print "Error: don't know how to run the job=", job.to_json()
+
+@app.celery.task(name='requeue')
+def requeue():
+    question_ids_to_requeue = []
+    worker_ids_to_requeue = []
+    
+    current_time = datetime.datetime.now()
+    current_assignments = Answer.objects(
+        status = 'Assigned')
+    
+    
+    for assignment in current_assignments:
+        assignment_duration = assignment.task.assignment_duration
+        time_delta = current_time - assignment.assign_time
+        if time_delta.total_seconds() > assignment_duration:
+            requeueHelper(assignment.task.id, assignment.requester.id,
+                          [assignment.question.id],
+                          [assignment.worker.platform_id],
+                          assignment.worker.platform_name,
+                          'min_answers')
+    return True
+
+def requeueHelper(task_id, requester_id, question_ids,
+                  worker_ids, worker_source,
+                  strategy):
+    
+    num_question_ids = len(question_ids)
+
+    for worker_id, question_id in zip(worker_ids, question_ids):
+        try:
+            question = Question.objects.get(
+                id=question_id,
+                task=task_id)
+            worker = Worker.objects.get(
+                platform_id = worker_id,
+                platform_name = worker_source)
+            answer = Answer.objects.get(
+                task=task_id,
+                question = question,
+                worker = worker,
+                status = 'Assigned')
+        except DoesNotExist:
+            return {'error': 'Sorry, one of the question_id/worker_id pairsyou have provided is not eligible for requeueing'}
+
+
+
+    task_questions_var = redis_get_task_queue_var(task_id, strategy)
+
+    while 1:
+        for (question_id, worker_id) in zip(question_ids, worker_ids):
+            worker = Worker.objects.get(
+                platform_id = worker_id,
+                platform_name = worker_source)
+
+            worker_assignments_var = redis_get_worker_assignments_var(
+                task_id,
+                worker.id)
+            try:
+                pipe = app.redis.pipeline()
+                pipe.watch(task_questions_var)
+                pipe.watch(worker_assignments_var)
+
+                question = Question.objects.get(
+                    id=question_id,
+                    task=task_id)
+
+                if pipe.zscore(task_questions_var, question_id) == None:
+                    pipe.zadd(task_questions_var,
+                              question.answers_per_question-1,
+                              question_id)
+                else:
+                    pipe.zincrby(task_questions_var, question_id, -1)
+
+                answer = Answer.objects.get(
+                    task=task_id,
+                    question = question_id,
+                    worker = worker,
+                    status = 'Assigned').delete()
+                pipe.srem(worker_assignments_var, question_id)
+            except WatchError:
+                continue
+            finally:
+                pipe.reset()
+        break
+    print '%s questions requeued' % num_question_ids
+    return {'success' : '%s questions requeued' % num_question_ids}

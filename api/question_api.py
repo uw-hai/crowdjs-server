@@ -8,9 +8,10 @@ from schema.requester import Requester
 import schema.answer
 import json
 import random
-from util import requester_token_match, requester_token_match_and_task_match
+from util import requester_token_match, requester_token_match_and_task_match, requeue, requeueHelper
 from mongoengine.queryset import DoesNotExist
 from redis.exceptions import WatchError
+import datetime
 
 question_parser = reqparse.RequestParser()
 question_parser.add_argument('requester_id', type=str, required=True)
@@ -31,15 +32,15 @@ question_get_parser.add_argument('task_id', type=str, required=False)
 
 
 question_requeue_parser = reqparse.RequestParser()
-question_requeue_parser.add_argument('requester_id', type=str, required=True)
-question_requeue_parser.add_argument('task_id', type=str, required=True)
+question_requeue_parser.add_argument('requester_id', type=str, required=False)
+question_requeue_parser.add_argument('task_id', type=str, required=False)
 question_requeue_parser.add_argument('question_ids', type=list,
-                                     location='json',required=True)
+                                     location='json',required=False)
 question_requeue_parser.add_argument('worker_ids', type=list,
-                                     location='json',required=True)
+                                     location='json',required=False)
 question_requeue_parser.add_argument('worker_source', type=str,
-                                     required=True)
-question_requeue_parser.add_argument('strategy', type=str, required=True)
+                                     required=False)
+question_requeue_parser.add_argument('strategy', type=str, required=False)
 
 
 
@@ -153,68 +154,13 @@ class QuestionRequeueApi(Resource):
 
         question_ids = args['question_ids']
         worker_ids = args['worker_ids']
+
         worker_source = args['worker_source']
-
-        num_question_ids = len(question_ids)
-        
-        for worker_id, question_id in zip(worker_ids, question_ids):
-            try:
-                question = schema.question.Question.objects.get(
-                    id=question_id,
-                    task=task_id)
-                worker = schema.worker.Worker.objects.get(
-                    platform_id = worker_id,
-                    platform_name = worker_source)
-                answer = schema.answer.Answer.objects.get(
-                    task=task_id,
-                    question = question,
-                    worker = worker,
-                    status = 'Assigned')
-            except DoesNotExist:
-                return {'error': 'Sorry, one of the question_id/worker_id pairsyou have provided is not eligible for requeueing'}
-
-        
         strategy = args['strategy']
-        
-        task_questions_var = redis_get_task_queue_var(task_id, strategy)
 
-        while 1:
-            for (question_id, worker_id) in zip(question_ids, worker_ids):
-                worker = schema.worker.Worker.objects.get(
-                    platform_id = worker_id,
-                    platform_name = worker_source)
-
-                worker_assignments_var = redis_get_worker_assignments_var(
-                    task_id,
-                    worker.id)
-                try:
-                    pipe = app.redis.pipeline()
-                    pipe.watch(task_questions_var)
-                    pipe.watch(worker_assignments_var)
-
-                    question = schema.question.Question.objects.get(
-                        id=question_id,
-                        task=task_id)
-
-                    if pipe.zscore(task_questions_var, question_id) == None:
-                        pipe.zadd(task_questions_var,
-                                  question.answers_per_question-1,
-                                  question_id)
-                    else:
-                        pipe.zincrby(task_questions_var, question_id, -1)
-
-                    answer = schema.answer.Answer.objects.get(
-                        task=task_id,
-                        question = question_id,
-                        worker = worker,
-                        status = 'Assigned').delete()
-                    pipe.srem(worker_assignments_var, question_id)
-                except WatchError:
-                    continue
-                finally:
-                    pipe.reset()
-            break
-        return {'success' : '%s questions requeued' % num_question_ids}
+                    
+        return requeueHelper(task_id, requester_id, question_ids,
+                       worker_ids, worker_source, strategy)
     
 class QuestionAnswersApi(Resource):
     def get(self, question_id):
