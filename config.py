@@ -34,6 +34,8 @@ class DevelopmentConfig(Config):
     DEVELOPMENT = True
     DEBUG = True
     TESTING = True
+
+
     CELERYBEAT_SCHEDULE = {
         'requeue-every-5-seconds': {
             'task': 'requeue',
@@ -46,10 +48,13 @@ class Production(Config):
     DEBUG = False
     DEVELOPMENT = False
     TESTING = False
+
+    REQUEUE_INTERVAL = int(os.environ['REQUEUE_INTERVAL'])
+
     CELERYBEAT_SCHEDULE = {
-        'requeue-every-60-minutes': {
-            'task': 'util.requeue',
-            'schedule': timedelta(minutes=60),
+        'requeue-every-minute': {
+            'task': 'requeue',
+            'schedule': timedelta(seconds=REQUEUE_INTERVAL),
             'args': ()
         },
     }
