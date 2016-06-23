@@ -15,6 +15,7 @@ from util import requester_token_match, requester_token_match_and_task_match, ge
 import sys, traceback
 from redis.exceptions import WatchError
 
+from controllers.pomdp_controller import POMDPController
 
 nextq_parser = reqparse.RequestParser()
 #TODO:
@@ -101,6 +102,8 @@ class NextQuestionApi(Resource):
             question = self.min_answers(task_id, worker)
         elif strategy == 'random':
             question = self.random_choice(task_id, worker)
+        elif strategy == 'pomdp':
+            question = self.pomdp_assign(task_id, worker)
         else:
             return {'error' : 'Invalid Strategy'}
 
@@ -121,6 +124,20 @@ class NextQuestionApi(Resource):
         return {'question_name' : str(question.name),
                 'question_id' : str(question.id),
                 'question_data' : str(question.data)}
+
+    def pomdp_assign(self, task_id, worker):
+        """
+        Refactored POMDP assignment controller
+        """
+        print("Using new pomdp controller for assignment...")
+        controller = POMDPController(task_id)
+        assignment_dict = controller.assign([worker])
+        if assignment_dict.has_key(str(worker.id)):
+            q_id = assignment_dict[str(worker.id)]
+            return schema.question.Question.objects.get(id=q_id)
+        else:
+            print("POMDP controller did not make an assignment")
+            return None
 
     ####
     # NOT FULLY TESTED
