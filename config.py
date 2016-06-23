@@ -28,7 +28,9 @@ class Config(object):
 
 
     CELERY_TIMEZONE = 'UTC'
-    CELERY_IMPORTS = ['util']
+    CELERY_IMPORTS = ['api.util']
+    CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
+
     
 class DevelopmentConfig(Config):
     DEVELOPMENT = True

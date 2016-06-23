@@ -2,8 +2,11 @@ crowdjs-server
 ==============
 
 ## Development configuration
-- Create and activate a Python virtual environment. https://github.com/yyuu/pyenv and https://github.com/yyuu/pyenv-virtualenv are useful tools for this.
-- Load application dependencies into the Python virtual environment by running `pip install -r requirements.txt`.
+- Download and install miniconda. http://conda.pydata.org/miniconda.html
+- Create a conda environment. `conda create --name crowdjs python pip`
+- Activate the conda environment. `source activate crowdjs`
+- Load application dependencies by running `pip install -r requirements.txt`
+- Install scipy. `conda install nomkl scipy`
 - This repository contains git submodules. Run `git submodule init` and `git submodule update` to fetch these.
 - Set up a MongoDB database. One option is to create a free Heroku instance with a MongoLab sandbox add-on.
 - Install [zmdp](https://github.com/trey0/zmdp) as a submodule (see ZMDP readme for build instructions).

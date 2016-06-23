@@ -11,7 +11,6 @@ import random
 from util import requester_token_match, requester_token_match_and_task_match, requeue, requeueHelper
 from mongoengine.queryset import DoesNotExist
 from redis.exceptions import WatchError
-import datetime
 
 question_parser = reqparse.RequestParser()
 question_parser.add_argument('requester_id', type=str, required=True)
