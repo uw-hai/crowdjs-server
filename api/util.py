@@ -12,7 +12,6 @@ from mongoengine.queryset import DoesNotExist
 from redis.exceptions import WatchError
 import datetime
 
-
 from controllers.pomdp_controller import POMDPController
 
 def requester_token_match(requester_id):

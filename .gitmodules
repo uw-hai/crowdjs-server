@@ -1,6 +1,3 @@
-[submodule "zmdp"]
-	path = zmdp
-	url = https://github.com/trey0/zmdp.git
 [submodule "crowd-estimate"]
 	path = crowd-estimate
 	url = https://github.com/uwcrowdlab/crowd-estimate.git
