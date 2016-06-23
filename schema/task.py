@@ -7,6 +7,10 @@ class Task(db.Document):
 
     #This field is for the requester to store whatever they want.
     data = db.StringField()
+
+    #How long a worker has to work on a question in this task
+    #in seconds
+    assignment_duration = db.IntField()
     
     total_task_budget = db.IntField()
     

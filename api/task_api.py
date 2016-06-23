@@ -22,6 +22,7 @@ task_parser.add_argument('task_name', type=str, required=True)
 task_parser.add_argument('task_description', type=str, required=True)
 task_parser.add_argument('questions', type=list, location='json',
                          required=False)
+task_parser.add_argument('assignment_duration', type=int, required=False, default=3600)
 task_parser.add_argument('data', type=str, required=False, default='')
 task_parser.add_argument('answers_per_question', type=int, required=False,
                          default = 1)
@@ -136,6 +137,7 @@ class TaskListApi(Resource):
         task_name = args['task_name']
         task_description = args['task_description']
         questions = args['questions']
+        assignment_duration = args['assignment_duration']
         task_answers_per_question = args['answers_per_question']
         task_data = args['data']
         total_task_budget = args['total_task_budget']
@@ -148,6 +150,7 @@ class TaskListApi(Resource):
         task = Task(
             name = task_name,
             description = task_description,
+            assignment_duration = assignment_duration,
             requester = requester,
             data = task_data,
             total_task_budget = total_task_budget)

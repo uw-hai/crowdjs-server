@@ -1,1 +1,2 @@
-worker: python -m unittest discover
+web: python -m unittest discover
+worker: celery -A app.celery worker -B

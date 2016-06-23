@@ -6,6 +6,8 @@ from redis_util import redis_get_worker_assignments_var, redis_get_task_queue_va
 from flask.ext.security.registerable import register_user
 import uuid
 import json
+import time
+import psutil
 
 def clear_db():
     schema.answer.Answer.objects().delete()
@@ -22,9 +24,12 @@ def clear_redis():
     app.redis.flushdb()
 
 class AppTestCase(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(AppTestCase):
         clear_db()
         clear_redis()
+
+    def setUp(self):
         self.app = app.test_client()
         
         with app.app_context():
@@ -35,6 +40,7 @@ class AppTestCase(unittest.TestCase):
         #XXX make a garbage request to avoid any app.before_first_request surprises
         self.app.get('/')
 
+        
     ########
     # TASKS AND ASSIGNMENTS IN THIS TEST
     #
@@ -1325,7 +1331,7 @@ class AppTestCase(unittest.TestCase):
         test_question7_name = uuid.uuid1().hex
         test_question7_description = "q7 desc"
         test_question7 = dict(question_name=test_question7_name,
-                              question_description=test_question6_description,
+                              question_description=test_question7_description,
                               question_data='xiao ling the second',
                               answers_per_question = 10,
                               task_id=task_id4,
@@ -1373,6 +1379,67 @@ class AppTestCase(unittest.TestCase):
 
         priority = app.redis.zscore(task_queue_var, test_question7_id)
         self.assertEqual(0, priority)
+
+        ###########
+        # TEST MAKING TASK WITH TASK DURATION AND WORKER PROCESS
+        # DELETES ASSIGNMENT AND REQUEUES A QUESTION
+        ############
+        test_question8_name = uuid.uuid1().hex
+        test_question8 = dict(question_name=test_question8_name,
+                              question_description='test question 8',
+                              question_data='pie',
+                              requester_id = str(self.test_requester.id),
+                              answers_per_question = 5)
+
+        test_task5_name = uuid.uuid1().hex
+        test_task5 = dict(task_name = test_task5_name,
+                          task_description = 'task for scheduling',
+                          requester_id = str(self.test_requester.id),
+                          questions = [test_question8],
+                          assignment_duration = 2,
+                          total_task_budget=3)
+        
+
+        rv = self.app.put('/tasks', content_type='application/json',
+                          headers={'Authentication-Token':
+                                   self.test_requester_api_key},
+                          data=json.dumps(test_task5))
+        self.assertEqual(200, rv.status_code)
+        task_id5 = json.loads(rv.data)['task_id']
+        question_id8 = json.loads(rv.data)['question_ids'][0]
+        
+        wt_pair = dict(worker_id=test_worker_id,
+                       worker_source=test_worker_source,
+                       task_id=task_id5,
+                       requester_id=str(self.test_requester.id),
+                       strategy='min_answers')
+                
+        rv = self.app.get('/assign_next_question',
+                          content_type='application/json',
+                          data=json.dumps(wt_pair))
+        self.assertEqual(200, rv.status_code)
+        assign = json.loads(rv.data)['question_name']
+
+        self.assertEqual(1, len(schema.answer.Answer.objects(
+            task=task_id5,
+            question=question_id8)))
+
+        task_queue_var = redis_get_task_queue_var(task_id5,
+                                                  'min_answers')
+        priority = app.redis.zscore(task_queue_var, question_id8)
+        self.assertEqual(1, priority)
+        
+        print "Sleeping for 10 seconds"
+        time.sleep(10)
+        
+        self.assertEqual(0, len(schema.answer.Answer.objects(
+            task=task_id5,
+            question=question_id8)))
+
+        priority = app.redis.zscore(task_queue_var, question_id8)
+        self.assertEqual(0, priority)
+
+        
         
     def test_populate_db(self):
         # Start with clean DB for sanity
@@ -1724,10 +1791,32 @@ class AppTestCase(unittest.TestCase):
 
         print("Done populating DB.")
 
+
+    @classmethod
+    def tearDownClass(AppTestCase):
+        print "Killing background processes"
+
+        celery_processes = []
+        for proc in psutil.process_iter():
+            if proc.name() == "celery":
+                celery_processes.append(proc)
         
-    def tearDown(self):
-        clear_db()
-        clear_redis()
+        celery_processes = sorted(celery_processes,
+                                  key= lambda proc: proc.create_time,
+                                  reverse=True)
+
+        print [(proc.name(), proc.create_time) for proc in celery_processes]
+        
+        for proc in celery_processes[0:3]:
+            proc.kill()
+            
+        print "Press Ctrl-C to quit"
+        #clear_db()
+        #clear_redis()
+
+    #def tearDown(self):
+    #    clear_db()
+    #    clear_redis()
 
 if __name__ == '__main__':
     unittest.main()
