@@ -2,11 +2,13 @@
 #this entails reading/writing all history + belief updates from/to DB
 import datetime
 import numpy as np
-from controller import Controller
 import pomdp
 import pomdp_peng
+import pomdp_policy
 import util
 import schema
+import os
+import shutil
 
 from aggregation.db_inference import aggregate_task_EM
 from app import app
@@ -41,9 +43,6 @@ class POMDPController():
         #2)Get avg gamma from EM results, if none default to 1.0
         self.average_gamma = self.getAverageGamma(EM_results)
         print self.average_gamma
-        #TODO weird decisions happen with bad avg gamma estimates
-        self.average_gamma = 1.0
-        #TODO remove
 
         #3)Create POMDP policy
 
@@ -61,7 +60,11 @@ class POMDPController():
         self.num_states = 1 + self.num_difficulty_bins * self.num_answer_choices # includes terminal state
 
         # XXX POMDP weird stuff
-        self.policy_dir = None
+        self.policy_dir = 'policies'
+        if not os.path.isdir(self.policy_dir):
+            #make the directory if it doesn't exist
+            os.makedirs(self.policy_dir)
+
         self.pomdp_var = pomdp_peng.PengPOMDP(
             self.num_difficulty_bins, self.average_gamma)
 
@@ -234,13 +237,27 @@ class POMDPController():
         """
         Solve POMDP policy based on current parameters
         """
-        zpomdp = pomdp.ZPOMDP()
-        policy = zpomdp.solve(self.pomdp_var.states, self.pomdp_var.actions, self.pomdp_var.observations,
-                              self.pomdp_var.CLOSURE_f_start(self.num_states),
-                              self.pomdp_var.f_transition,
-                              self.pomdp_var.CLOSURE_f_observation(self.average_gamma),
-                              self.pomdp_var.CLOSURE_f_reward(self.reward_create, self.reward_correct, self.reward_incorrect),
-                              discount=self.discount, timeout=self.timeout, directory=self.policy_dir)
+        # NOTE Naming scheme of POMDP policy files:
+        # dai_<worker skill rounded to 0.1>_<reward for incorrect answer>.policy
+        # i.e. 'dai_1.0_-100' is the policy for the Dai-AIJ13 pomdp with
+        # average worker skill = 1.0 and reward for incorrect answer of -100
+        filename = 'dai_%.1f_%s.policy' % (self.average_gamma, self.reward_incorrect)
+        if os.path.isdir(self.policy_dir) and os.path.isfile(self.policy_dir + '/' + filename):
+            #previously solved
+            policy = pomdp_policy.POMDPPolicy(self.policy_dir + '/' + filename, file_format='zmdp', n_states= self.num_states)
+        else:
+            #have to solve it
+            zpomdp = pomdp.ZPOMDP()
+            policy = zpomdp.solve(self.pomdp_var.states, self.pomdp_var.actions, self.pomdp_var.observations,
+                                  self.pomdp_var.CLOSURE_f_start(self.num_states),
+                                  self.pomdp_var.f_transition,
+                                  self.pomdp_var.CLOSURE_f_observation(self.average_gamma),
+                                  self.pomdp_var.CLOSURE_f_reward(self.reward_create, self.reward_correct, self.reward_incorrect),
+                                  discount=self.discount, timeout=self.timeout, directory=self.policy_dir)
+
+            #save our new policy where we can find it again
+            #rename p.policy to filename w/params
+            shutil.move(self.policy_dir + '/p.policy', self.policy_dir + '/' + filename)
         return policy
 
     def HELPER_update_belief(self, old_belief, observation, gamma):
