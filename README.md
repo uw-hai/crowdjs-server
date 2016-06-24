@@ -10,11 +10,12 @@ crowdjs-server
 - This repository contains git submodules. Run `git submodule init` and `git submodule update` to fetch these.
 - Set up a MongoDB database. One option is to create a free Heroku instance with a MongoLab sandbox add-on.
 - Install [zmdp](https://github.com/trey0/zmdp) as a submodule (see ZMDP readme for build instructions).
-- Create a `.env` file in the root directory with the following lines (substitute `db_user`, `db_password`, `host`, and `port` with details of your development MongoDB connection; and substitute `zmdp` with the alias or location of the ZMDP solver.
+- Create a `.env` file in the root directory with the following lines (substitute `db_user`, `db_password`, `host`, and `port` with details of your development MongoDB connection; and substitute `zmdp` with the alias or location of the ZMDP solver. REQUEUE_INTERVAL is the number of seconds before the server will reassign abandoned questions.
 ```
 MONGOLAB_URI=mongodb://db_user:db_password@host:port
 APP_SETTINGS='config.DevelopmentConfig'
 ZMDP_ALIAS=zmdp # or ./zmdp/bin/<os_name>/zmdp
+REQUEUE_INTERVAL=600
 ```
 - Create a production version `.production-env` that uses the production configuration. **This file should not include the details of your production database connections.**
 ```
@@ -29,7 +30,6 @@ REDIS_URL=redis://user:password@host:port
 ## Additional configuration
 To set up Heroku, add the following buildpacks, using the toolbelt command `heroku buildpacks:add`:
 
-1. https://github.com/heroku/heroku-buildpack-python
 2. https://github.com/uwcrowdlab/heroku-buildpack-zmdp.git
 3. https://github.com/kennethreitz/conda-buildpack.git
 
