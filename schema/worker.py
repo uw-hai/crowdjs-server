@@ -1,6 +1,6 @@
 from app import db
 
-class Worker(db.Document):
+class Worker(db.DynamicDocument):
     platform_id = db.StringField()
     platform_name = db.StringField()
 
