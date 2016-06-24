@@ -29,7 +29,6 @@ REDIS_URL=redis://user:password@host:port
 ## Additional configuration
 To set up Heroku, add the following buildpacks, using the toolbelt command `heroku buildpacks:add`:
 
-1. https://github.com/heroku/heroku-buildpack-python
 2. https://github.com/uwcrowdlab/heroku-buildpack-zmdp.git
 3. https://github.com/kennethreitz/conda-buildpack.git
 
