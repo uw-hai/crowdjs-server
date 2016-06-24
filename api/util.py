@@ -162,13 +162,15 @@ def requeueHelper(task_id, requester_id, question_ids,
             worker = Worker.objects.get(
                 platform_id = worker_id,
                 platform_name = worker_source)
-            answer = Answer.objects.get(
-                task=task_id,
-                question = question,
-                worker = worker,
-                status = 'Assigned')
+            if Answer.objects(task=task_id,
+                              question = question,
+                              worker = worker,
+                              status = 'Assigned').first() == None:
+                return {'error': 'Sorry, one of the question_id/worker_id pairsyou have provided is not eligible for requeueing'}
         except DoesNotExist:
             return {'error': 'Sorry, one of the question_id/worker_id pairsyou have provided is not eligible for requeueing'}
+
+
 
 
 
@@ -199,7 +201,7 @@ def requeueHelper(task_id, requester_id, question_ids,
                 else:
                     pipe.zincrby(task_questions_var, question_id, -1)
 
-                answer = Answer.objects.get(
+                answer = Answer.objects(
                     task=task_id,
                     question = question_id,
                     worker = worker,
