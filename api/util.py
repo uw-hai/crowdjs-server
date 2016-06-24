@@ -12,6 +12,7 @@ from mongoengine.queryset import DoesNotExist
 from redis.exceptions import WatchError
 import datetime
 
+from controllers.pomdp_controller import POMDPController
 
 def requester_token_match(requester_id):
     return str(current_user.id) == requester_id
@@ -100,7 +101,25 @@ def start_inference_job(job_id):
     task_id = job.task.id
     if job.strategy == "majority_vote":
         #run inference algorithm
+        print "Running inference job with strategy =  majority_vote"
         results = db_inference.aggregate_task_majority_vote(task_id)
+        #write result to DB
+        job.results = results
+        job.status = 'Completed'
+        job.save()
+    elif job.strategy == "EM":
+        print "Running inference job with strategy =  EM"
+        #run EM
+        results = db_inference.aggregate_task_EM(task_id)
+        #write result to DB
+        job.results = results
+        job.status = 'Completed'
+        job.save()
+    elif job.strategy == "pomdp":
+        print "Running inference job with strategy =  pomdp"
+        #get pomdp status for all questions in task
+        pomdp_controller = POMDPController(task_id)
+        results = pomdp_controller.getStatus(task_id)
         #write result to DB
         job.results = results
         job.status = 'Completed'
