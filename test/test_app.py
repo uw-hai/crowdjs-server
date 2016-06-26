@@ -1798,8 +1798,11 @@ class AppTestCase(unittest.TestCase):
 
         celery_processes = []
         for proc in psutil.process_iter():
-            if proc.name() == "celery":
-                celery_processes.append(proc)
+            try:
+                if proc.name() == "celery":
+                    celery_processes.append(proc)
+            except psutil.NoSuchProcess:
+                pass
         
         celery_processes = sorted(celery_processes,
                                   key= lambda proc: proc.create_time,
