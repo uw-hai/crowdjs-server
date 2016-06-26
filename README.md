@@ -41,8 +41,8 @@ Take a look at the `make_docs` script in the root directory. The documentation p
 
 ## Testing instructions
 - **DO NOT RUN UNIT TESTS ON YOUR PRODUCTION DATABASE!!! IT WILL BE CLEARED!!!**
-- Use `heroku local -f Procfile.test` (if using Heroku) or
-- Be sure to run both `./run_tests.sh .env` AND `./run_tests.sh .production-env` to test both dev and production environments.
+- Be sure to run both `heroku local -f Procfile.test -e .env` AND `heroku local -f Procfile.test -e .production-env` to test both dev and production environments.
+- `./run_tests.sh` is deprecated.
 - The `test/` folder also contains folders with more tests that include end-to-end workflow tests as well as more unit tests. To run these, read the README inside the desired `*_workflow/` folder.
 
 ## Usage
