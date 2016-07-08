@@ -21,7 +21,9 @@ def clear_redis():
     """
     Delete all keys from the Redis database except for those beginning with _.
     """
-    for key in app.redis.scan_iter("_*"):
+    for key in app.redis.scan_iter("*"):
+        if key[0] == '_':
+            continue
         app.redis.delete(key)
     #app.redis.flushdb()
     
