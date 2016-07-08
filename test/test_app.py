@@ -19,9 +19,12 @@ def clear_db():
 
 def clear_redis():
     """
-    Delete all keys from the Redis database.
+    Delete all keys from the Redis database except for those beginning with _.
     """
-    app.redis.flushdb()
+    for key in app.redis.scan_iter("_*"):
+        app.redis.delete(key)
+    #app.redis.flushdb()
+    
 
 class AppTestCase(unittest.TestCase):
     @classmethod
