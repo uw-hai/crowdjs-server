@@ -522,7 +522,14 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
-        self.assertEqual(get_answer['value'], "test answer value")
+        self.assertEqual(get_answer['success'], "test answer value")
+
+        #Test adding the same answer by the same worker to the same question
+        rv = self.app.put('/answers', content_type='application/json',
+                          data=json.dumps(test_answer))
+        self.assertEqual(200, rv.status_code)
+        get_answer = json.loads(rv.data)
+        self.assertIn('error', get_answer)
 
         #There should still be 3 answers
         rv = self.app.get('/answers', content_type='application/json',
@@ -585,7 +592,8 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
-        self.assertEqual(get_answer['value'], "31415")
+        self.assertEqual(get_answer['success'],
+                         "Unassigned answer inserted. value: 31415")
 
         #There should now be 4 answers
         rv = self.app.get('/answers', content_type='application/json',
@@ -616,6 +624,8 @@ class AppTestCase(unittest.TestCase):
         num_answers_with_test_value = 0
         num_answers_with_other_values = 0
         answer_with_test_value = None
+        print "RETURN DATA"
+        print ret_data
         for answer in ret_data:
             if 'value' not in answer:
                 num_answers_with_no_value += 1
@@ -651,7 +661,7 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
-        self.assertEqual(get_answer['value'], "assign2value")
+        self.assertEqual(get_answer['success'], "assign2value")
             
         #There should still be 4 answers
         rv = self.app.get('/answers', content_type='application/json',
@@ -727,7 +737,7 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
-        self.assertEqual(get_answer['value'], "assign3value1")
+        self.assertEqual(get_answer['success'], "assign3value1")
 
 
         task_queue_var = redis_get_task_queue_var(task_id,
@@ -748,7 +758,8 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
-        self.assertEqual(get_answer['value'], "assign3value2")
+        self.assertEqual(get_answer['success'],
+                         "Unassigned answer inserted. value: assign3value2")
 
         task_queue_var = redis_get_task_queue_var(task_id,
                                                   'min_answers')
@@ -1067,7 +1078,7 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
-        self.assertEqual(get_answer['value'], "mahler was a bahler 1")
+        self.assertEqual(get_answer['success'], "mahler was a bahler 1")
 
 
         rv = self.app.get('/assign_next_question',
@@ -1086,7 +1097,7 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
-        self.assertEqual(get_answer['value'], "mahler was a bahler 2")
+        self.assertEqual(get_answer['success'], "mahler was a bahler 2")
 
         answer_get_query = dict(requester_id=str(self.test_requester.id),
                                 task_id = task_id3)
@@ -1161,7 +1172,7 @@ class AppTestCase(unittest.TestCase):
                           data=json.dumps(test_answer))
         self.assertEqual(200, rv.status_code)
         get_answer = json.loads(rv.data)
-        self.assertEqual(get_answer['value'],  "bready mcbreadface")
+        self.assertEqual(get_answer['success'],  "bready mcbreadface")
 
 
         rv = self.app.get('/assign_next_question',
@@ -1638,65 +1649,74 @@ class AppTestCase(unittest.TestCase):
                           headers={'Authentication-Token': requester1_token},
                           data=json.dumps(answer1))
         self.assertEqual(200, rv.status_code)
-        answer1_value = json.loads(rv.data)['value']
-        self.assertEqual("dog", answer1_value)
+        answer1_value = json.loads(rv.data)['success']
+        self.assertEqual('Unassigned answer inserted. value: dog',
+                         answer1_value)
         
         rv = self.app.put('/answers', content_type='application/json',
                           headers={'Authentication-Token': requester1_token},
                           data=json.dumps(answer2))
         self.assertEqual(200, rv.status_code)
-        answer2_value = json.loads(rv.data)['value']
-        self.assertEqual("sheep", answer2_value)
+        answer2_value = json.loads(rv.data)['success']
+        self.assertEqual('Unassigned answer inserted. value: sheep',
+                         answer2_value)
         
         rv = self.app.put('/answers', content_type='application/json',
                           headers={'Authentication-Token': requester1_token},
                           data=json.dumps(answer3))        
         self.assertEqual(200, rv.status_code)
-        answer3_value = json.loads(rv.data)['value']        
-        self.assertEqual("cat", answer3_value)
+        answer3_value = json.loads(rv.data)['success']        
+        self.assertEqual('Unassigned answer inserted. value: cat',
+                         answer3_value)
         
         rv = self.app.put('/answers', content_type='application/json',
                           headers={'Authentication-Token': requester2_token},
                           data=json.dumps(answer4))
         self.assertEqual(200, rv.status_code)
-        answer4_value = json.loads(rv.data)['value']
-        self.assertEqual("husky", answer4_value)
+        answer4_value = json.loads(rv.data)['success']
+        self.assertEqual('Unassigned answer inserted. value: husky',
+                         answer4_value)
         
         rv = self.app.put('/answers', content_type='application/json',
                           headers={'Authentication-Token': requester1_token},
                           data=json.dumps(answer5))
         self.assertEqual(200, rv.status_code)
-        answer5_value = json.loads(rv.data)['value']
-        self.assertEqual("cat", answer5_value)
+        answer5_value = json.loads(rv.data)['success']
+        self.assertEqual('Unassigned answer inserted. value: cat',
+                         answer5_value)
         
         rv = self.app.put('/answers', content_type='application/json',
                           headers={'Authentication-Token': requester2_token},
                           data=json.dumps(answer6))
         self.assertEqual(200, rv.status_code)
-        answer6_value = json.loads(rv.data)['value']
-        self.assertEqual("apple", answer6_value)
+        answer6_value = json.loads(rv.data)['success']
+        self.assertEqual('Unassigned answer inserted. value: apple',
+                         answer6_value)
         
         rv = self.app.put('/answers', content_type='application/json',
                           headers={'Authentication-Token': requester2_token},
                           data=json.dumps(answer7))
         self.assertEqual(200, rv.status_code)
-        answer7_value = json.loads(rv.data)['value']
-        self.assertEqual("biscuit", answer7_value)
+        answer7_value = json.loads(rv.data)['success']
+        self.assertEqual('Unassigned answer inserted. value: biscuit',
+                         answer7_value)
         
         rv = self.app.put('/answers', content_type='application/json',
                           headers={'Authentication-Token': requester2_token},
                           data=json.dumps(answer8))
         self.assertEqual(200, rv.status_code)
-        answer8_value = json.loads(rv.data)['value']
-        self.assertEqual("husky dog", answer8_value)
+        answer8_value = json.loads(rv.data)['success']
+        self.assertEqual('Unassigned answer inserted. value: husky dog',
+                         answer8_value)
 
 
         rv = self.app.put('/answers', content_type='application/json',
                           headers={'Authentication-Token': requester2_token},
                           data=json.dumps(answer9))
         self.assertEqual(200, rv.status_code)
-        answer9_value = json.loads(rv.data)['value']
-        self.assertEqual("good answer", answer9_value)
+        answer9_value = json.loads(rv.data)['success']
+        self.assertEqual('Unassigned answer inserted. value: good answer',
+                         answer9_value)
 
 
         # Done adding to DB
