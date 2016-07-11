@@ -1,6 +1,6 @@
 from app import db
 
-class Task(db.Document):
+class Task(db.DynamicDocument):
     name = db.StringField(max_length=80)
     description = db.StringField(max_length=255)
     requester = db.ReferenceField('Requester')

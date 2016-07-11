@@ -30,7 +30,13 @@ answer_parser.add_argument('is_alive', type=flask.ext.restful.inputs.boolean,
 answer_get_parser = reqparse.RequestParser()
 answer_get_parser.add_argument('requester_id', type=str, required=True)
 answer_get_parser.add_argument('task_id', type=str, required=False)
-answer_get_parser.add_argument('completed', type=flask.ext.restful.inputs.boolean, required=False,
+answer_get_parser.add_argument('completed',
+                               type=flask.ext.restful.inputs.boolean,
+                               required=False,
+                               default = True)
+answer_get_parser.add_argument('assigned',
+                               type=flask.ext.restful.inputs.boolean,
+                               required=False,
                                default = True)
 
 class AnswerListApi(Resource):
@@ -44,12 +50,14 @@ class AnswerListApi(Resource):
         :param str requester_id: your requester id.
         :param str task_id: optional. Get answers for only this task.
         :param bool completed: optional. Get only completed answers.
+        :param bool assigned: optional. Get only answers that were assigned.
         """
         args = answer_get_parser.parse_args()
         requester_id = args['requester_id']
         task_id = args['task_id']
         completed = args['completed']
-
+        assigned = args['assigned']
+        
         if task_id == None:
             if not requester_token_match(requester_id):
                 return "Sorry, your api token is not correct"
@@ -115,22 +123,42 @@ class AnswerListApi(Resource):
         worker = get_or_insert_worker(worker_platform_id, worker_source)
         if worker == None:
             return "You have not entered a valid worker source. It must be one of: [mturk,] "
-        
+
         answers = Answer.objects(question = question,
-                                worker = worker,
-                                status = 'Assigned')
-        
+                                 worker = worker,
+                                 value = value)
+        if len(answers) > 0:
+            return {'error' : 'Answer already in database'}
+
+        answers = Answer.objects(question = question,
+                                 worker = worker,
+                                 status = 'Assigned')
+
+        #If this answer was not assigned by our system, AND regardless
+        #of whether the worker has answered it before and the question
+        #allows for the same worker to answer it multiple times,
+        #add it, and inform the
+        #requester the question was unassigned
+        #If the worker has answered it before AND
+        #the question doesn't allow the same worker to answer it
+        #multiple times, then disallow the insertion.
         if len(answers) == 0:
+            answers = Answer.objects(question = question,
+                                     worker = worker)
+            if len(answers) > 1 and question.unique_workers:
+                return {'error' : 'Worker already answered this question'}
+            
             answer = Answer(question = question,
                             task = task,
                             requester = requester,
                             worker = worker,
                             assign_time = None,
                             is_alive = is_alive)
-            #REDIS update
-            #this answer was not assigned by our system
-            #Hack, might have to update bookkeeping for every strategy here
-            #If the answer was not assigned by our system, should it count?
+            answer.complete_time = datetime.datetime.now()
+            answer.value = value
+            answer.status = 'Completed'
+            answer.save()
+            
             task_queue_var = redis_get_task_queue_var(task_id, 'min_answers')
             #Check if the question is in the queue.
             #If not, don't need to do anything.
@@ -151,21 +179,18 @@ class AnswerListApi(Resource):
                 finally:
                     pipe.reset()
 
+            return {'success' :
+                    'Unassigned answer inserted. value: %s' % answer.value}
 
         else:
-            #XXX assuming worker only assigned to particular question once?
-            assert len(answers) == 1
             answer = answers[0]
-
             
-        answer.complete_time = datetime.datetime.now()
-        answer.value = value
-        answer.status = 'Completed'
-
-        answer.save()
+            answer.complete_time = datetime.datetime.now()
+            answer.value = value
+            answer.status = 'Completed'
+            answer.save()
+        return {'success' : answer.value}
         
-        return {'value' : answer.value}
-
 class AnswerApi(Resource):
     def get(self, answer_id):
         """

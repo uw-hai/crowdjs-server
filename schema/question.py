@@ -1,6 +1,6 @@
 from app import db
 
-class Question(db.Document):
+class Question(db.DynamicDocument):
     #Need to just make this unique across a single task.
     name = db.StringField()
     description = db.StringField()

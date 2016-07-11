@@ -3,10 +3,8 @@ crowdjs-server
 
 ## Development configuration
 - Download and install miniconda. http://conda.pydata.org/miniconda.html
-- Create a conda environment. `conda create --name crowdjs python pip`
-- Activate the conda environment. `source activate crowdjs`
-- Load application dependencies by running `pip install -r requirements.txt`
-- Install scipy. `conda install nomkl scipy`
+- Create a conda environment with application dependencies. `conda env create -f environment.yml`
+- Activate the conda environment. `source activate heroku-dev`
 - This repository contains git submodules. Run `git submodule init` and `git submodule update` to fetch these.
 - Set up a MongoDB database. One option is to create a free Heroku instance with a MongoLab sandbox add-on.
 - Install [zmdp](https://github.com/trey0/zmdp) as a submodule (see ZMDP readme for build instructions).
@@ -14,7 +12,7 @@ crowdjs-server
 ```
 MONGOLAB_URI=mongodb://db_user:db_password@host:port
 APP_SETTINGS='config.DevelopmentConfig'
-ZMDP_ALIAS=zmdp # or ./zmdp/bin/<os_name>/zmdp
+ZMDP_ALIAS=$HOME/zmdp/bin/<os_name>/zmdp
 REQUEUE_INTERVAL=600
 ```
 - Create a production version `.production-env` that uses the production configuration. **This file should not include the details of your production database connections.**
@@ -30,8 +28,8 @@ REDIS_URL=redis://user:password@host:port
 ## Additional configuration
 To set up Heroku, add the following buildpacks, using the toolbelt command `heroku buildpacks:add`:
 
-2. https://github.com/uwcrowdlab/heroku-buildpack-zmdp.git
-3. https://github.com/kennethreitz/conda-buildpack.git
+1. https://github.com/uwcrowdlab/heroku-buildpack-zmdp.git
+2. https://github.com/mwcraig/conda-buildpack.git  # This is a PR that fixes https://github.com/conda/conda-buildpack.git
 
 ## Run instructions
 - Run the application using either `heroku local` (if using Heroku) or `./run.sh .env -b host:port`. Use the second option if you would like to see exceptions. 
@@ -41,8 +39,8 @@ Take a look at the `make_docs` script in the root directory. The documentation p
 
 ## Testing instructions
 - **DO NOT RUN UNIT TESTS ON YOUR PRODUCTION DATABASE!!! IT WILL BE CLEARED!!!**
-- Use `heroku local -f Procfile.test` (if using Heroku) or
-- Be sure to run both `./run_tests.sh .env` AND `./run_tests.sh .production-env` to test both dev and production environments.
+- Be sure to run both `heroku local -f Procfile.test -e .env` AND `heroku local -f Procfile.test -e .production-env` to test both dev and production environments.
+- `./run_tests.sh` is deprecated.
 - The `test/` folder also contains folders with more tests that include end-to-end workflow tests as well as more unit tests. To run these, read the README inside the desired `*_workflow/` folder.
 
 ## Usage

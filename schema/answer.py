@@ -1,6 +1,6 @@
 from app import db
 
-class Answer(db.Document):
+class Answer(db.DynamicDocument):
     value = db.StringField()
     question = db.ReferenceField('Question')
     task = db.ReferenceField('Task')

@@ -30,7 +30,7 @@ class Config(object):
     CELERY_TIMEZONE = 'UTC'
     CELERY_IMPORTS = ['api.util']
     CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
-
+    BROKER_POOL_LIMIT = 0
     
 class DevelopmentConfig(Config):
     DEVELOPMENT = True

@@ -1,6 +1,6 @@
 from app import db
 
-class InferenceJob(db.Document):
+class InferenceJob(db.DynamicDocument):
     """
     Stores results of some inference/aggregation algorithm run on a task
     """
