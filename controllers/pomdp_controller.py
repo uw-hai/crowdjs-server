@@ -1,5 +1,3 @@
-#TODO connect to DB; controller should be stateless
-#this entails reading/writing all history + belief updates from/to DB
 import datetime
 import numpy as np
 import pomdp
@@ -18,21 +16,24 @@ class POMDPController():
     """
     Question assignment controller with POMDP-based assignment and label decisions
 
-    Lifespan of this object:
-    INIT
-    o   created on /assign API request w/worker=W, task=T
-    o   runs EM on all observation in Task T
-    o   solves/retrieves pomdp policy w EM avg gamma
-    ASSIGN
+    Usage of this object:
+
+    __init__:
+        created on /assign API request w/worker=W, task=T
+        runs EM on all observation in Task T
+        solves/retrieves pomdp policy w EM avg gamma
+    assign:
         calculates belief state and action-reward pairs for each question in T
-    ~   returns best assignment W:Question Q
-    ?   write any updates to questions and workers to DB before getting killed off?
-    GETSTATUS
+        returns best assignment W:Question Q
+        updates Redis that worker W has been assigned to Q
+    getStatus:
         calculates belief state and action-reward pairs for each question in T
         returns 
+
+    See getPolicy() for information on POMDP policy solving and caching.
     """
     def __init__(self, task_id):
-        # NOTE assumes task_id has been checked
+        # XXX assumes task_id has been checked already
         self.task_id = task_id
         self.task = schema.task.Task.objects.get(id=task_id)
 
@@ -73,8 +74,7 @@ class POMDPController():
 
     def getStatus(self, includeVotes=True):
         """
-        Returns all observations and pomdp opinion's of question status
-        Complete = task budget hit, so submit best guess for each question even if it needs another label.
+        Returns all observations and pomdp opinions of question status
         """
         #1) Calculate beliefs
         beliefs = self.calculateBeliefs()
@@ -113,16 +113,16 @@ class POMDPController():
 
     def assign(self, available_workers):
         """
-        Provide assignments to a list of available workers
-        May only support assigning one worker at a time (set size of one).
+        Provide assignments to a list of available workers - 
+        note that this strategy only supports assigning one worker at a time.
 
-        Assumes worker cannot answer same question more than once
+        Assumes a worker cannot answer the same question more than once
         and that there are no per-question budgets
         """
         
         status = self.getStatus()
 
-
+        assert len(available_workers) == 1
         worker = available_workers[0]
         assignment = {}
 
@@ -138,11 +138,11 @@ class POMDPController():
 
 
         # sort questions by pomdp expected reward...
-        # TODO this isn't quite what we want...
+        # XXX this isn't quite what we want...
         # want to sort by value of getting another label
         # so we don't have all workers getting assigned to the same question
         unfinished_unsorted_qs = [(q,v) for (q,v) in status.iteritems() if v['best_action_str'] == 'create-another-job']
-        #NOTE REVERSE ORDER
+        # NOTE REVERSE ORDER
         sorted_qs = sorted(unfinished_unsorted_qs, key=lambda x:x[1]['best_expected_reward'], reverse=True)
         print "sorted_qs", sorted_qs
         print "worker %s has done the following questions" % w_id
@@ -165,7 +165,7 @@ class POMDPController():
         assert len(assignment) == 0
         print "no assignment made yet"
 
-        #TODO POMDP doesn't think there are any questions available to the worker 
+        #NOTE POMDP doesn't think there are any questions available to the worker 
         #that need another label, but let's give them an assignment anyway
         #Pick question where submitting would have worst expected reward 
         # (implying it may benefit from another label)
@@ -197,7 +197,6 @@ class POMDPController():
 
             print belief[q]
             for answer in self.getQuestionCompletedAnswers(question):
-#               q = str(answer.question.id)
                 print q
                 print str(answer.question.id)
                 assert str(answer.question.id) == q
@@ -280,22 +279,3 @@ class POMDPController():
         Uniform over non-terminal states, append terminal state w/p=0
         """
         return util.initBelief(self.num_answer_choices, self.num_difficulty_bins)
-
-#   def updateObservations(self, incremental=True):
-#       #TODO update self.answers
-#       #only get all DB observations since last update (assignment time AFTER last controller update)
-
-#       # First get current time => will become the time we last checked for new observations
-#       newLastUpdateTime = datetime.datetime.now()
-
-#       if incremental:
-#           # incremental update controller with new answers
-#           new_answers = schema.answer.Answer.objects(task=self.task, status='Completed', complete_time__gt=self.lastUpdateTime) #is_alive=True)?
-#       else:
-#           #add every observations in task (i.e. when initializing controller)
-#           new_answers = schema.answer.Answer.objects(task=self.task, status='Completed')
-
-#       #TODO do something with answers
-
-#       # Overwrite the time we last checked for new observations
-#       self.lastUpdateTime = newLastUpdateTime
