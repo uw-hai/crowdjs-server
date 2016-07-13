@@ -37,6 +37,18 @@ To set up Heroku, add the following buildpacks, using the toolbelt command `hero
 ## Documentation
 Take a look at the `make_docs` script in the root directory. The documentation page will be saved to `docs/_build/html/index.html`
 
+## Simulator instructions
+- Check out `simulator.py` to see a basic experiment using the server. It creates a simulated labeling task with workers and questions and uses the POMDP-based assignment strategy to best complete the task within a given budget.
+- Run the simulation with `python simulator.py`. Make sure the server is already running (see above for instructions)
+- In order to run this experiment you will need to create a file `config.json` in the main directory with the following data (assuming you have already created a requester account):
+```
+{
+    "crowdjs_url": "http://<server_url>",
+    "test_requester_email": "<requester_email>",
+    "test_requester_password": "<requester_password>"
+}
+```
+
 ## Testing instructions
 - **DO NOT RUN UNIT TESTS ON YOUR PRODUCTION DATABASE!!! IT WILL BE CLEARED!!!**
 - Be sure to run both `heroku local -f Procfile.test -e .env` AND `heroku local -f Procfile.test -e .production-env` to test both dev and production environments.
