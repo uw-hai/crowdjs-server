@@ -121,9 +121,9 @@ class NextQuestionApi(Resource):
                                           is_alive = True)
             
             answer.save()
-        return {'question_name' : str(question.name),
+        return {'question_name' : question.name,
                 'question_id' : str(question.id),
-                'question_data' : str(question.data)}
+                'question_data' : question.data}
 
     def pomdp_assign(self, task_id, worker):
         """
