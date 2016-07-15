@@ -4,7 +4,7 @@ crowdjs-server
 ## Development configuration
 - Download and install miniconda. http://conda.pydata.org/miniconda.html
 - Create a conda environment with application dependencies. `conda env create -f environment.yml`
-- Activate the conda environment. `source activate heroku-dev`
+- Activate the conda environment. `source activate heroku-env`
 - This repository contains git submodules. Run `git submodule init` and `git submodule update` to fetch these.
 - Set up a MongoDB database. One option is to create a free Heroku instance with a MongoLab sandbox add-on.
 - Install [zmdp](https://github.com/trey0/zmdp) as a submodule (see ZMDP readme for build instructions).
@@ -30,6 +30,10 @@ To set up Heroku, add the following buildpacks, using the toolbelt command `hero
 
 1. https://github.com/uwcrowdlab/heroku-buildpack-zmdp.git
 2. https://github.com/mwcraig/conda-buildpack.git  # This is a PR that fixes https://github.com/conda/conda-buildpack.git
+
+You may also need to clear the heroku cache if your slug size is too large:
+
+`heroku repo:purge_cache --app your-app-name`
 
 ## Run instructions
 - Run the application using either `heroku local` (if using Heroku) or `./run.sh .env -b host:port`. Use the second option if you would like to see exceptions. 
