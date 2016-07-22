@@ -15,6 +15,8 @@ from redis_util import *
 class POMDPController():
     """
     Question assignment controller with POMDP-based assignment and label decisions
+    In order to run efficiently on the server, need skill/difficulty estimates
+    and question beliefs to be maintained by background processes.
 
     Args:
         task_id: id of task in the DB
@@ -42,6 +44,8 @@ class POMDPController():
         self.task = schema.task.Task.objects.get(id=task_id)
 
         #1)Run EM
+        #TODO want this to just access latest estimates as opposed to running
+        #a new session of EM on the entire task
         EM_results = aggregate_task_EM(task_id)
         print EM_results
 
@@ -80,11 +84,15 @@ class POMDPController():
         Returns all observations and pomdp opinions of question status
         """
         #1) Calculate beliefs
+        #TODO want to cache beliefs and make incremental updates
+        print "Calculating beliefs"
         beliefs = self.calculateBeliefs()
 
         #2) Get POMDP data for each question
+        print "Getting POMDP decision for each question"
         out = {}
         for (q_id,belief) in beliefs.iteritems():
+            print "q_id", q_id
 
             #get POMDP action reward pairs
             action_rewards = {str(a):r for a,r in self.policy.get_action_rewards(belief).iteritems()}
@@ -95,27 +103,27 @@ class POMDPController():
             #get best action as readable string (submit-true, etc.)
             best_action_str = self.pomdp_var.actions[best_action]
 
-            #get all votes on this question as JSON
-            answers = self.getQuestionCompletedAnswers(q_id)
-            votes = []
-            for answer in answers:
-                q_name = answer.question.name
-                w_id = str(answer.worker.id)
-                w_platform_id = str(answer.worker.platform_id)
-                w_skill = answer.worker.inference_results['EM']['skill']
-                value = answer.value
-                vote = {"worker_id": w_id, "worker_platform_id":w_platform_id, "est_skill":w_skill, "value":value}
-                votes.append(vote)
-
             out[q_id] = dict(best_action=best_action,
                             best_expected_reward=best_expected_reward,
                             best_action_str=best_action_str,
-                            action_rewards=action_rewards,
-                            votes=votes)
-            if not includeVotes:
-                out[q_id].pop('votes')
+                            action_rewards=action_rewards)
 
-        print out
+            #optional get all votes on this question as JSON
+            #XXX NOTE SLOW! Has to access database
+            if includeVotes:
+                answers = self.getQuestionCompletedAnswers(q_id)
+                votes = []
+                for answer in answers:
+                    q_name = answer.question.name
+                    w_id = str(answer.worker.id)
+                    w_platform_id = str(answer.worker.platform_id)
+                    w_skill = answer.worker.inference_results['EM']['skill']
+                    value = answer.value
+                    vote = {"worker_id": w_id, "worker_platform_id":w_platform_id, "est_skill":w_skill, "value":value}
+                    votes.append(vote)
+
+                out[q_id]['votes'] = votes
+
         return out
 
     def assign(self, available_workers):
@@ -152,12 +160,12 @@ class POMDPController():
         # NOTE REVERSE ORDER
         sorted_qs = sorted(unfinished_unsorted_qs, key=lambda x:x[1]['best_expected_reward'], reverse=True)
         print "sorted_qs", sorted_qs
-        print "worker %s has done the following questions" % w_id
-        for (q_id,er) in sorted_qs:
-            if app.redis.sismember(worker_assignments_var, q_id):
-                print "+", q_id
-            else:
-                print "-", q_id
+#       print "worker %s has done the following questions" % w_id
+#       for (q_id,er) in sorted_qs:
+#           if app.redis.sismember(worker_assignments_var, q_id):
+#               print "+", q_id
+#           else:
+#               print "-", q_id
 
         for idx in range(len(sorted_qs)):
             q_id,expected_reward = sorted_qs[idx]
@@ -176,7 +184,7 @@ class POMDPController():
         #that need another label, but let's give them an assignment anyway
         #Pick question where submitting would have worst expected reward 
         # (implying it may benefit from another label)
-        finished_qs = [(q,v) for (q,v) in status.iteritems() if v['best_action_str'] != 'create-another-job'] #TODO
+        finished_qs = [(q,v) for (q,v) in status.iteritems() if v['best_action_str'] != 'create-another-job']
         sorted_finished_qs = sorted(finished_qs, key=lambda x:x[1]['best_expected_reward']) # no reverse
         for idx in range(len(sorted_finished_qs)):
             q_id,expected_reward = sorted_finished_qs[idx]
@@ -202,20 +210,20 @@ class POMDPController():
             q = str(question.id)
             belief[q] = self.HELPER_init_belief()
 
-            print belief[q]
+            #print belief[q]
             for answer in self.getQuestionCompletedAnswers(question):
-                print q
-                print str(answer.question.id)
+                #print q
+                #print str(answer.question.id)
                 assert str(answer.question.id) == q
                 w_skill = answer.worker.inference_results['EM']['skill']
                 # answer.value must be "0" or "1"
                 assert answer.value == "0" or answer.value == "1"
-                print answer.value, w_skill
+                #print answer.value, w_skill
                 belief[q] = self.HELPER_update_belief(belief[q], answer.value, w_skill)
-                print belief[q]
+                #print belief[q]
 
-        print "Question beliefs:", belief
-        print "##################"
+        #print "Question beliefs:", belief
+        #print "##################"
         return belief
 
 
@@ -272,13 +280,13 @@ class POMDPController():
         Will convert observation to integer 1 or 0 if it is a string
         """
         observation = int(observation)
-        print "old_belief:", old_belief, type(old_belief)
-        print "observation:", observation, type(observation)
-        print "gamma:", gamma, type(gamma)
+        #print "old_belief:", old_belief, type(old_belief)
+        #print "observation:", observation, type(observation)
+        #print "gamma:", gamma, type(gamma)
 
         diffs = [0.1*i for i in range(self.num_difficulty_bins)]
         new_belief = util.updateBelief(old_belief, None, observation, diffs, gamma)
-        print "new_belief", new_belief, type(new_belief)
+        #print "new_belief", new_belief, type(new_belief)
         return new_belief
 
     def HELPER_init_belief(self):
