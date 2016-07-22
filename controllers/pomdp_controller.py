@@ -32,7 +32,7 @@ class POMDPController():
 
     See getPolicy() for information on POMDP policy solving and caching.
     """
-    def __init__(self, task_id):
+    def __init__(self, task_id, discount=0.9999, timeout=300, reward_incorrect=-50):
         # XXX assumes task_id has been checked already
         self.task_id = task_id
         self.task = schema.task.Task.objects.get(id=task_id)
@@ -48,10 +48,9 @@ class POMDPController():
         #3)Create POMDP policy
 
         # Parameters
-        self.do_gamma_updates = True 
-        self.discount = 0.9999
-        self.timeout = 300 # seconds
-        self.reward_incorrect = -50
+        self.discount = discount
+        self.timeout = timeout # seconds
+        self.reward_incorrect = reward_incorrect
        
         # Constants
         self.reward_correct = 0
