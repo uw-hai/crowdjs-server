@@ -1,4 +1,5 @@
 # Simulator code for end-to-end controller test
+
 # NOTE requires a separate config.json file, see README
 # NOTE worker_id refers to worker_platform_id in all cases, not the DB worker id
 
@@ -30,9 +31,9 @@ def setupParams():
 
     # Choose experiment number of questions & workers and fix a budget
     #TODO allow passing in from command line
-    NUM_WORKERS = 10
     NUM_QUESTIONS = 3
-    AVG_BUDGET_PER_QUESTION = 5
+    NUM_WORKERS = 10
+    AVG_BUDGET_PER_QUESTION = 3
     POMDP_PENALTY = -50
     # NOTE Simple budget for early experiments (to compare to fixed allocation of labels)
     params['budget'] = AVG_BUDGET_PER_QUESTION*NUM_QUESTIONS
@@ -185,13 +186,20 @@ class Simulator():
                 w_idx = 0
     
     def analyze_exp(self, log_file=None):
-        def exp_log(string):
+        json_out = {}
+#       def exp_log(string):
+#           """
+#           Log experiment output to file
+#           """
+#           print string
+#           if log_file is not None:
+#               log_file.write(string + '\n')
+        def json_log_add(k,v):
             """
-            Log experiment output to file
+            Log experiment output as JSON
             """
-            print string
-            if log_file is not None:
-                log_file.write(string + '\n')
+            print "JSON log adding: " + k + ":" + str(v)
+            json_out[k] = v
 
         print "Question names->IDs mapping:", self.p('question_names_to_ids')
 
@@ -215,26 +223,33 @@ class Simulator():
         # ----------------------
         # Print parameters
         #XXX do not print auth data for security reasons
-        exp_log("Experiment parameters:")
+        #exp_log("Experiment parameters:")
         key_blacklist = {'crowdjs_url', 'requester_id', 'auth_token', 'headers'}
+        log_params = {}
         for (k,v) in sorted(self.params.iteritems()):
             if k not in key_blacklist:
-                exp_log("%s: %s" % (str(k),str(v)))
+                #exp_log("%s: %s" % (str(k),str(v)))
+                log_params[k] = v
+        json_log_add("experiment_parameters", log_params) # TODO need json(log_params)?
 
         # Print votes
-        exp_log("Vote format: qname, worker_id, label")
+        #exp_log("Vote format: qname, worker_id, label")
+        log_votes = []
         for vote in self.votes:
             vote_str = "%s %s %s" % (vote[0], vote[1], vote[2])
-            exp_log(vote_str)
+            #exp_log(vote_str)
+            log_votes.append({"question_name":vote[0], "worker_id": vote[1], "label": vote[2]})
+        json_log_add("votes", log_votes)
 
-        if self.p('strategy') == 'pomdp':
+        if self.p('aggregation_strategy') == 'pomdp':
+            log_decisions = []
             # Print statistics POMDP decision for each question, 
             # Tally # of correct/incorrect decisions
             # Print number of labels used per question and total
-            exp_log("POMDP decisions:")
-            exp_log("Columns: qname, true_label (0/1), pomdp_decision (0/1/-1), question_difficulty, num_labels_used")
+            #exp_log("POMDP decisions:")
+            #exp_log("Columns: qname, true_label (0/1), pomdp_decision (0/1/-1), question_difficulty, num_labels_used")
             correct = 0
-            for qname in self.p('question_names'):
+            for qname in sorted(self.p('question_names')):
                 true_label = self.p('true_labels')[qname]
                 qid = self.p("question_names_to_ids")[qname]
                 pomdp_dec = results[qid]['best_action_str']
@@ -256,12 +271,42 @@ class Simulator():
                     else:
                         dec = 0
 
-                if true_label == dec:
+                if str(true_label) == str(dec):
                     correct += 1
 
-                exp_log("%s %d %d %s %.2f %d" % (qname, true_label, dec, str(do_submit), true_diff, len(votes)))
-            exp_log("%d out of %d questions correct" % (correct, len(self.p('question_names'))))
-            exp_log("Used %d labels in total" % len(self.votes))
+                #exp_log("%s %d %d %s %.2f %d" % (qname, true_label, dec, str(do_submit), true_diff, len(votes)))
+                log_decisions.append({"question_name":qname, "true_label":true_label, "decision":dec, "do_submit":do_submit, "true_diff":true_diff, "num_labels_q":len(votes)})
+            #exp_log("%d out of %d questions correct" % (correct, len(self.p('question_names'))))
+            #exp_log("Used %d labels in total" % len(self.votes))
+
+            #log
+            json_log_add("decisions", log_decisions)
+            json_log_add("num_questions_correct", correct)
+
+        elif self.p('aggregation_strategy') == 'majority_vote':
+            correct = 0
+            log_decisions = []
+            #use results of inference job
+            for qname in sorted(self.p('question_names')):
+                true_label = self.p('true_labels')[qname]
+                qid = self.p("question_names_to_ids")[qname]
+                dec = results[qid] #the MV label
+                true_diff = self.p('true_diffs')[qname]
+                votes = [vote for vote in self.votes if vote[0] == qname]
+                if str(true_label) == str(dec):
+                    correct += 1
+                log_decisions.append({"question_name":qname, "true_label": true_label, "decision":dec, "true_diff":true_diff, "num_labels_q":len(votes)})
+
+            #log
+            json_log_add("decisions", log_decisions)
+            json_log_add("num_questions_correct", correct)
+
+
+        # log for all experiments
+        json_log_add("num_questions", len(self.p('question_names')))
+        json_log_add("num_labels_used", len(self.votes))
+
+        return json_out
 
 
     # Utility functions
@@ -321,4 +366,6 @@ if __name__ == '__main__':
     params = setupParams()
     sim = Simulator(params)
     sim.run_exp()
-    sim.analyze_exp()
+    json_log = sim.analyze_exp()
+    print "JSON log:"
+    print(json.dumps(json_log, sort_keys=True, indent=4))
