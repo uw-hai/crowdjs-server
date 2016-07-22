@@ -13,6 +13,6 @@ class InferenceJob(db.DynamicDocument):
     status = db.StringField(choices=('Created','Running','Completed','Killed'), default='Created')
 
     #optional
-    additional_params = db.StringField(max_length=80, default="") # additional arguments for algorithm
+    additional_params = db.DictField(default={}) # additional arguments for algorithm
 
     #TODO other possible fields: timeout, created_time, completed_time, run_time, ...
