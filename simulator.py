@@ -20,20 +20,28 @@ def setupParams():
     - Creates the task on the server, and initializes the worker skills and
       question difficulties that will be used in the simulation.
 
+    See util.py for function implementations, but at the time of this writing:
+    - Worker skills are drawn from Normal(1.0, 0.2)
+    - Question difficulties are drawn uniformly on [0.0,1.0]
+    - Question labels are drawn 50/50 from 0 (False) and 1 (True)
+
     """
     params={}
 
     # Choose experiment number of questions & workers and fix a budget
     #TODO allow passing in from command line
     NUM_WORKERS = 10
-    NUM_QUESTIONS = 5
-    AVG_BUDGET_PER_QUESTION = 1
+    NUM_QUESTIONS = 3
+    AVG_BUDGET_PER_QUESTION = 5
+    POMDP_PENALTY = -50
     # NOTE Simple budget for early experiments (to compare to fixed allocation of labels)
     params['budget'] = AVG_BUDGET_PER_QUESTION*NUM_QUESTIONS
-    params['strategy'] = 'pomdp' # for assignment='min_answers' 'random' or 'pomdp'
-    params['strategy_additional_params'] = {'reward_incorrect': '-28'}
-    params['aggregation_strategy'] = 'pomdp' # for aggregation='majority_vote' 'EM' or 'pomdp' 
-    params['aggregation_strategy_additional_params'] = {'reward_incorrect': '-29'}
+    # strategy for assignment='min_answers' 'random' or 'pomdp'
+    params['strategy'] = 'pomdp' 
+    params['strategy_additional_params'] = {'reward_incorrect': POMDP_PENALTY}
+    # strategy for aggregation='majority_vote' 'EM' or 'pomdp' 
+    params['aggregation_strategy'] = 'pomdp'
+    params['aggregation_strategy_additional_params'] = {'reward_incorrect': POMDP_PENALTY}
 
     # Load configuration file
     with open('config.json') as json_config_file:
@@ -59,7 +67,7 @@ def setupParams():
     true_skills={w:util.drawWorkerSkill() for w in worker_ids} # given dict mapping w-id to true skill
 
     # Initialize question labels and difficulties
-    question_names = ['q'+str(qi)+' @ %s' % start_time_str for qi in range(NUM_QUESTIONS)]
+    question_names = ['q'+str(qi)+'_@_%s' % start_time_str for qi in range(NUM_QUESTIONS)]
     true_diffs ={q:util.drawQuestionDifficulty() for q in question_names}# given dict mapping q-name to true difficulty
     true_labels ={q:util.drawRandomLabel() for q in question_names}# given dict mapping q-name to true label
 
@@ -184,26 +192,13 @@ class Simulator():
             print string
             if log_file is not None:
                 log_file.write(string + '\n')
-#       # NOTE run an EM job for reference
-#       data = {"requester_id": self.p('requester_id'),
-#               "strategy": "EM"} 
 
-#       em_resp = requests.put(self.p('crowdjs_url') + '/tasks/%s/aggregate' % self.p('task_id'), headers = self.p('headers'), json=data)
-#       em_job_id = em_resp.json()['_id']['$oid']
-#       print "inference job_id = ", em_job_id
-#       em_dataGET = {"requester_id": self.p('requester_id')}
-
-#       #Get EM results
-#       em_get_resp = requests.get(self.p('crowdjs_url') + '/tasks/%s/aggregate/%s' % (self.p('task_id'), em_job_id), headers = self.p('headers'), json=em_dataGET)
-#       print em_get_resp.json()['results']
-
-#       print "----------------"
         print "Question names->IDs mapping:", self.p('question_names_to_ids')
 
         # Get decision for each question from the server
         data = {"requester_id": self.p('requester_id'),
                 "strategy": self.p('aggregation_strategy'),
-                "additional_params": self.p("aggregation_strategy_additional_params")} #majority_vote, EM, or POMDP
+                "additional_params": self.p("aggregation_strategy_additional_params")}
         resp = requests.put(self.p('crowdjs_url') + '/tasks/%s/aggregate' % self.p('task_id'), headers = self.p('headers'), json=data)
         job_id = resp.json()['_id']['$oid']
         print "inference job_id = ", job_id
@@ -243,7 +238,7 @@ class Simulator():
                 true_label = self.p('true_labels')[qname]
                 qid = self.p("question_names_to_ids")[qname]
                 pomdp_dec = results[qid]['best_action_str']
-                do_submit = True
+                do_submit = "submit"
                 true_diff = self.p('true_diffs')[qname]
                 votes = [vote for vote in self.votes if vote[0] == qname]
                 if pomdp_dec == 'submit-true':
@@ -252,7 +247,7 @@ class Simulator():
                     dec = 0
                 else:
                     # POMDP still wants another label but use its best guess for experiment
-                    do_submit = False
+                    do_submit = "label!"
                     # see pomdp_peng.py for action indices (currently 0=get another label, 1=submit true, 2=submit false)
                     reward_submit_true = results[qid]['action_rewards']['1']
                     reward_submit_false = results[qid]['action_rewards']['2']
@@ -270,13 +265,6 @@ class Simulator():
 
 
     # Utility functions
-
-#   def exp_log(self, string):
-#       """
-#       Log experiment output to file
-#       """
-#       #TODO write to file
-#       print string
 
     def get_assignment(self, worker_id):
         """
