@@ -26,6 +26,8 @@ nextq_parser.add_argument('task_id', type=str, required=True)
 nextq_parser.add_argument('requester_id', type=str, required=True)
 nextq_parser.add_argument('strategy', type=str, required=False,
                           default='random')
+# additional parameters for strategy (needed for experiment)
+nextq_parser.add_argument('additional_params', type=dict, required=False, default={})
 nextq_parser.add_argument('preview', type=flask.ext.restful.inputs.boolean,
                           required=False,
                           default=False)
@@ -103,7 +105,9 @@ class NextQuestionApi(Resource):
         elif strategy == 'random':
             question = self.random_choice(task_id, worker)
         elif strategy == 'pomdp':
-            question = self.pomdp_assign(task_id, worker)
+            #use additional strategy parameters
+            settings = args['additional_params']
+            question = self.pomdp_assign(task_id, worker, settings)
         else:
             return {'error' : 'Invalid Strategy'}
 
@@ -125,12 +129,13 @@ class NextQuestionApi(Resource):
                 'question_id' : str(question.id),
                 'question_data' : question.data}
 
-    def pomdp_assign(self, task_id, worker):
+    def pomdp_assign(self, task_id, worker, settings):
         """
         Refactored POMDP assignment controller
+        NOTE: Can set custom POMDP penalty (i.e. -100) for submitting an incorrect answer
         """
         print("Using new pomdp controller for assignment...")
-        controller = POMDPController(task_id)
+        controller = POMDPController(task_id, settings)
         assignment_dict = controller.assign([worker])
         if assignment_dict.has_key(str(worker.id)):
             q_id = assignment_dict[str(worker.id)]

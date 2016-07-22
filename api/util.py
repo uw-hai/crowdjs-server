@@ -118,7 +118,7 @@ def start_inference_job(job_id):
     elif job.strategy == "pomdp":
         print "Running inference job with strategy =  pomdp"
         #get pomdp status for all questions in task
-        pomdp_controller = POMDPController(task_id)
+        pomdp_controller = POMDPController(task_id, settings = job.additional_params)
         results = pomdp_controller.getStatus(task_id)
         #write result to DB
         job.results = results
