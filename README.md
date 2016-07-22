@@ -4,7 +4,7 @@ crowdjs-server
 ## Development configuration
 - Download and install miniconda. http://conda.pydata.org/miniconda.html
 - Create a conda environment with application dependencies. `conda env create -f environment.yml`
-- Activate the conda environment. `source activate heroku-dev`
+- Activate the conda environment. `source activate heroku-env`
 - This repository contains git submodules. Run `git submodule init` and `git submodule update` to fetch these.
 - Set up a MongoDB database. One option is to create a free Heroku instance with a MongoLab sandbox add-on.
 - Install [zmdp](https://github.com/trey0/zmdp) as a submodule (see ZMDP readme for build instructions).
@@ -31,6 +31,10 @@ To set up Heroku, add the following buildpacks, using the toolbelt command `hero
 1. https://github.com/uwcrowdlab/heroku-buildpack-zmdp.git
 2. https://github.com/mwcraig/conda-buildpack.git  # This is a PR that fixes https://github.com/conda/conda-buildpack.git
 
+You may also need to clear the heroku cache if your slug size is too large:
+
+`heroku repo:purge_cache --app your-app-name`
+
 ## Run instructions
 - Run the application using either `heroku local` (if using Heroku) or `./run.sh .env -b host:port`. Use the second option if you would like to see exceptions. 
 
@@ -50,3 +54,14 @@ Take a look at the `make_docs` script in the root directory. The documentation p
 - To insert an answer into the database, make a PUT request to `server_url/answers`.
 - See the documentation for more details about how to make the requests.
 
+## Simulator instructions
+- Check out `simulator.py` to see a basic experiment using the server. It creates a simulated labeling task with workers and questions and uses the POMDP-based assignment strategy to best complete the task within a given budget.
+- In order to run this experiment you will need to create a file `config.json` in the main directory with the following data (assuming you have already created a requester account):
+```
+{
+    "crowdjs_url": "http://<server_url>",
+    "test_requester_email": "<requester_email>",
+    "test_requester_password": "<requester_password>"
+}
+```
+- Run the simulation with `python simulator.py`. Make sure the server is already running (see above for instructions)
