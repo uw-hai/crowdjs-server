@@ -29,7 +29,7 @@ REDIS_URL=redis://user:password@host:port
 To set up Heroku, add the following buildpacks, using the toolbelt command `heroku buildpacks:add`:
 
 1. https://github.com/uwcrowdlab/heroku-buildpack-zmdp.git
-2. https://github.com/mwcraig/conda-buildpack.git  # This is a PR that fixes https://github.com/conda/conda-buildpack.git
+2. https://github.com/uwcrowdlab/conda-buildpack.git  # This is fork of https://github.com/mwcraig/conda-buildpack.git, which is a PR that fixes https://github.com/conda/conda-buildpack.git
 
 You may also need to clear the heroku cache if your slug size is too large:
 
