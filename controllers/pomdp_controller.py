@@ -16,6 +16,10 @@ class POMDPController():
     """
     Question assignment controller with POMDP-based assignment and label decisions
 
+    Args:
+        task_id: id of task in the DB
+        settings: dict with keys i.e. 'discount':0.99, 'reward_incorrect':-100
+
     Usage of this object:
 
     __init__:
@@ -32,7 +36,7 @@ class POMDPController():
 
     See getPolicy() for information on POMDP policy solving and caching.
     """
-    def __init__(self, task_id, discount=0.9999, timeout=300, reward_incorrect=-50):
+    def __init__(self, task_id, settings={}):
         # XXX assumes task_id has been checked already
         self.task_id = task_id
         self.task = schema.task.Task.objects.get(id=task_id)
@@ -48,9 +52,9 @@ class POMDPController():
         #3)Create POMDP policy
 
         # Parameters
-        self.discount = discount
-        self.timeout = timeout # seconds
-        self.reward_incorrect = reward_incorrect
+        self.discount = settings.get('discount', 0.9999)
+        self.timeout = settings.get('timeout', 300) # seconds
+        self.reward_incorrect = settings.get('reward_incorrect', -50)
        
         # Constants
         self.reward_correct = 0
@@ -71,7 +75,7 @@ class POMDPController():
         # Initialize pomdp policy with given parameters
         self.policy = self.getPolicy()
 
-    def getStatus(self, includeVotes=True):
+    def getStatus(self, includeVotes=False):
         """
         Returns all observations and pomdp opinions of question status
         """
@@ -103,7 +107,11 @@ class POMDPController():
                 vote = {"worker_id": w_id, "worker_platform_id":w_platform_id, "est_skill":w_skill, "value":value}
                 votes.append(vote)
 
-            out[q_id] = dict(best_action=best_action, best_expected_reward=best_expected_reward, action_rewards=action_rewards, best_action_str=best_action_str, votes=votes)
+            out[q_id] = dict(best_action=best_action,
+                            best_expected_reward=best_expected_reward,
+                            best_action_str=best_action_str,
+                            action_rewards=action_rewards,
+                            votes=votes)
             if not includeVotes:
                 out[q_id].pop('votes')
 
