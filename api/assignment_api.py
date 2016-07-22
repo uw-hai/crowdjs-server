@@ -49,6 +49,7 @@ class NextQuestionApi(Resource):
         :param str task_id:
         :param str requester_id: id of requester who owns this task
         :param str strategy: optional, defaults to 'min_answers' assignment strategy. other choices: random, pomdp, ...
+        :param dict additional_params: optional, allows requester to specify settings for some assignment strategies
         :param bool preview: optional, if true then the question id will be returned but no assignment will be created.
 
         **Example response:**

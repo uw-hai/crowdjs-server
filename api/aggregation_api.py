@@ -76,6 +76,7 @@ class TaskAggregationApi(Resource):
         Returns: JSON representation of this job as created (use ID to look it up later).
         
         :param str strategy: optionally specify inference algorithm. 'EM', 'majority_vote' etc.
+        :param dict additional_params: optional settings for the given inference/aggregation algorithm
         :param str requester_id: req_id.
         """
         # TODO make this POST because it creates a resource
