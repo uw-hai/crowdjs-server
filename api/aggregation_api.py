@@ -57,6 +57,7 @@ class AnswerAggregationApi(Resource):
 # parser for starting aggregation jobs
 task_agg_start_parser = reqparse.RequestParser()
 task_agg_start_parser.add_argument('strategy', type=str, default='majority_vote')
+task_agg_start_parser.add_argument('additional_params', type=dict, default={}) # extra parameters for strategy
 task_agg_start_parser.add_argument('requester_id', type=str, required=True) # TODO eliminate
 
 # parser for getting status of aggregation jobs
@@ -99,8 +100,10 @@ class TaskAggregationApi(Resource):
 
         task = get_task_document(task_id)
 
+        additional_params = args['additional_params']
+
         # create job in DB
-        job_doc = InferenceJob(requester = requester, task = task, strategy = strategy)
+        job_doc = InferenceJob(requester = requester, task = task, strategy = strategy, additional_params=additional_params)
         job_doc.save()
 
         job_id = str(job_doc.id)
