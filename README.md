@@ -65,3 +65,19 @@ Take a look at the `make_docs` script in the root directory. The documentation p
 }
 ```
 - Run the simulation with `python simulator.py`. Make sure the server is already running (see above for instructions)
+
+## Alternate simulator instructions
+- For POMDP controller testing without using the server, use `alt_simulator.py`
+- In order to run an experiment you will need to create a file `alt_config.json` in the main directory with the following format:
+```
+{
+    "num_questions": 10,
+    "num_workers": 10,
+    "budget": 30,
+    "strategy": "pomdp",
+    "strategy_additional_params": {"reward_incorrect": -50},
+    "aggregation_strategy": "pomdp",
+    "aggregation_strategy_additional_params": {"reward_incorrect": -50}
+}
+```
+- Run the simulation with `./run_sim.sh <output_filename>`
