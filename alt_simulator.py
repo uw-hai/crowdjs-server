@@ -16,7 +16,7 @@ def debugPrintResp(resp):
     print resp.text
     print resp.json()
 
-def setupParams():
+def setupParams(config_filename):
     """
     Create params object to pass to simulator. 
     - Makes an API call to get and store the requester's token for later use. 
@@ -31,7 +31,7 @@ def setupParams():
     """
     # Load configuration file 
     params = {}
-    with open('alt_config.json') as json_config_file:
+    with open(config_filename) as json_config_file:
         params = json.load(json_config_file)
 
     start_time_str = time.strftime("%Y_%m_%d_%H_%M_%S")
@@ -248,8 +248,9 @@ class Simulator():
         return self.assignment_controller.addObservation(data)
 
 if __name__ == '__main__':
-    out_file = open(sys.argv[1], 'w')
-    params = setupParams()
+    config_filename = sys.argv[1]
+    out_file = open(sys.argv[2], 'w')
+    params = setupParams(config_filename)
     sim = Simulator(params)
     sim.run_exp()
     json_log = sim.analyze_exp()

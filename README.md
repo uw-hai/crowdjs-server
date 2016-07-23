@@ -68,7 +68,7 @@ Take a look at the `make_docs` script in the root directory. The documentation p
 
 ## Alternate simulator instructions
 - For POMDP controller testing without using the server, use `alt_simulator.py`
-- In order to run an experiment you will need to create a file `alt_config.json` in the main directory with the following format:
+- In order to run an experiment you will need to use a JSON file i.e. `alt_config.json` with the following format:
 ```
 {
     "num_questions": 10,
@@ -80,4 +80,5 @@ Take a look at the `make_docs` script in the root directory. The documentation p
     "aggregation_strategy_additional_params": {"reward_incorrect": -50}
 }
 ```
-- Run the simulation with `./run_sim.sh <output_filename>`
+- Run the simulation with `./run_sim.sh <config_filename> <output_filename>`
+- Output will be written as JSON to the specified file.

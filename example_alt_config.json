@@ -1,0 +1,9 @@
+{
+    "num_questions": 10,
+    "num_workers": 10,
+    "budget": 30,
+    "strategy": "pomdp",
+    "strategy_additional_params": {"reward_incorrect": -60},
+    "aggregation_strategy": "pomdp",
+    "aggregation_strategy_additional_params": {"reward_incorrect": -60}
+}
