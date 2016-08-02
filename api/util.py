@@ -90,10 +90,8 @@ def get_task_document(task_id):
         return False
     return task
 
+@app.celery.task(name='start_inference_job')
 def start_inference_job(job_id):
-    # TODO put this in its own file, will need to do some background process management
-    # TODO for now runs the entire inference job in this thread,
-    # does NOT run in a background process right now - very bad!
     job = InferenceJob.objects.get(id = job_id)
     job.status = 'Running'
     job.save()

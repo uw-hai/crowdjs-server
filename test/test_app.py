@@ -1805,16 +1805,30 @@ class AppTestCase(unittest.TestCase):
         print 'Job PUT return data=', ret
 
         #check job status
-        task1_agg1_get_data = dict(requester_id=requester1_id)
-        rv = self.app.get(task1_agg1_url + '/' + job_id,
-                content_type='application/json',
-                headers={'Authentication-Token':
-                                requester1_token},
-                data=json.dumps(task1_agg1_get_data))
-        ret = json.loads(rv.data)
-        print 'Job GET return data=', ret
-
-        print("Done populating DB.")
+        while True:
+            task1_agg1_get_data = dict(requester_id=requester1_id)
+            rv = self.app.get(task1_agg1_url + '/' + job_id,
+                              content_type='application/json',
+                              headers={'Authentication-Token':
+                                       requester1_token},
+                              data=json.dumps(task1_agg1_get_data))
+            self.assertEqual(200, rv.status_code)
+            ret = json.loads(rv.data)
+            print "HERE IS THE INFERENCE JOB STATUS"
+            print ret
+            if ret['status'] == 'Running':
+                continue
+            elif ret['status'] == 'Completed':
+                results = ret['results']
+                self.assertEqual(len(results.values()), 2)
+                self.assertEqual(results[question1_id], 'cat')
+                self.assertEqual(results[question2_id], 'sheep')
+                break
+            else:
+                self.assertEqual(0, 1)
+            
+            
+            print("Done populating DB.")
 
 
     @classmethod
@@ -1835,7 +1849,7 @@ class AppTestCase(unittest.TestCase):
 
         print [(proc.name(), proc.create_time) for proc in celery_processes]
         
-        for proc in celery_processes[0:3]:
+        for proc in celery_processes[0:5]:
             proc.kill()
             
         print "Press Ctrl-C to quit"

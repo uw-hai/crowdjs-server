@@ -111,8 +111,7 @@ class TaskAggregationApi(Resource):
 
         ret_val = json.loads(job_doc.to_json())
 
-        # TODO start job in background
-        start_inference_job(job_id)
+        start_inference_job.delay(job_id)
 
         return ret_val
 
