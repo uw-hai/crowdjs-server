@@ -154,7 +154,7 @@ def add_test_questions_and_task():
 from api.question_api import *
 api.add_resource(QuestionApi, '/questions/<question_id>') #UNSECURED
 api.add_resource(QuestionListApi, '/questions') 
-api.add_resource(QuestionAnswersApi, '/questions/<question_id>/answers') #UNSECURED
+api.add_resource(QuestionAnswersApi, '/questions/answers') #UNSECURED
 api.add_resource(QuestionRequeueApi, '/requeue') 
 
 # next question

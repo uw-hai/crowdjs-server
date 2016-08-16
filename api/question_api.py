@@ -1,6 +1,7 @@
 from app import app
 from redis_util import *
 from flask.ext.restful import reqparse, abort, Api, Resource
+import flask.ext.restful.inputs
 from flask.ext.security import login_required, current_user, auth_token_required
 import schema.question
 from schema.task import Task
@@ -160,12 +161,35 @@ class QuestionRequeueApi(Resource):
                     
         return requeueHelper(task_id, requester_id, question_ids,
                        worker_ids, worker_source, strategy)
-    
+
+
+answer_get_parser = reqparse.RequestParser()
+#answer_get_parser.add_argument('requester_id', type=str, required=True)
+answer_get_parser.add_argument('question_id', type=str, required=False)
+answer_get_parser.add_argument('completed',
+                               type=flask.ext.restful.inputs.boolean,
+                               required=False,
+                               default = True)
+#answer_get_parser.add_argument('assigned',
+#                               type=flask.ext.restful.inputs.boolean,
+#                               required=False,
+#                               default = True)
 class QuestionAnswersApi(Resource):
-    def get(self, question_id):
+    def get(self):
         """
         Get all answers to a given question.
         """
-        answers = schema.answer.Answer.objects(question=question_id)
+        args = answer_get_parser.parse_args()
+        #requester_id = args['requester_id']
+        question_id = args['question_id']
+        completed = args['completed']
+        #assigned = args['assigned']
+
+        if completed:
+            answers = schema.answer.Answer.objects(question=question_id,
+                                                   status='Completed')
+        else:
+            answers = schema.answer.Answer.objects(question=question_id)
+            
         return json.loads(answers.to_json())
                                                                                                                                                                                       
