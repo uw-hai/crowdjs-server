@@ -134,16 +134,25 @@ def requeue():
     current_assignments = Answer.objects(
         status = 'Assigned')
     
-    
+    num_assignments = 0
     for assignment in current_assignments:
         assignment_duration = assignment.task.assignment_duration
         time_delta = current_time - assignment.assign_time
+        num_assignments += 1
+        print "Checking if time to requeue"
+        print time_delta.total_seconds()
+        print assignment_duration
+        print current_time
+        print assignment.assign_time
+        
         if time_delta.total_seconds() > assignment_duration:
             requeueHelper(assignment.task.id, assignment.requester.id,
                           [assignment.question.id],
                           [assignment.worker.platform_id],
                           assignment.worker.platform_name,
                           'min_answers')
+
+    print num_assignments
     return True
 
 def requeueHelper(task_id, requester_id, question_ids,
@@ -152,6 +161,9 @@ def requeueHelper(task_id, requester_id, question_ids,
     
     num_question_ids = len(question_ids)
 
+    print "Attempting to requeue questions"
+    print question_ids
+    
     for worker_id, question_id in zip(worker_ids, question_ids):
         try:
             question = Question.objects.get(
