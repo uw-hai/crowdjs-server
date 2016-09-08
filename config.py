@@ -14,10 +14,7 @@ class Config(object):
 
     MONGODB_SETTINGS = {    
         'db': dbname,
-        'host': host,
-        'port': int(port),
-        'username' : dbuser,
-        'password' : dbpass}
+        'host': os.environ['MONGOLAB_URI']}
 
     SECRET_KEY = 'super-secret'
     SECURITY_REGISTERABLE = True
