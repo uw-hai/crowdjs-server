@@ -165,7 +165,7 @@ class QuestionRequeueApi(Resource):
 
 answer_get_parser = reqparse.RequestParser()
 #answer_get_parser.add_argument('requester_id', type=str, required=True)
-answer_get_parser.add_argument('question_id', type=str, required=False)
+answer_get_parser.add_argument('question_ids', action='append', required=True)
 answer_get_parser.add_argument('completed',
                                type=flask.ext.restful.inputs.boolean,
                                required=False,
@@ -181,15 +181,16 @@ class QuestionAnswersApi(Resource):
         """
         args = answer_get_parser.parse_args()
         #requester_id = args['requester_id']
-        question_id = args['question_id']
+        #question_id = args['question_id']
+        question_ids = args['question_ids']
         completed = args['completed']
         #assigned = args['assigned']
 
         if completed:
-            answers = schema.answer.Answer.objects(question=question_id,
+            answers = schema.answer.Answer.objects(question__in=question_ids,
                                                    status='Completed')
         else:
-            answers = schema.answer.Answer.objects(question=question_id)
+            answers = schema.answer.Answer.objects(question__in=question_ids)
             
         return json.loads(answers.to_json())
                                                                                                                                                                                       
