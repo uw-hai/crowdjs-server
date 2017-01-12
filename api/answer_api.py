@@ -231,7 +231,7 @@ class AnswerListApi2(Resource):
         #value = args['value']
 
         submitted_answers = args['answers']
-        json.loads(answers)
+        json.loads(submitted_answers)
         
         is_alive = args['is_alive']
 
