@@ -170,6 +170,7 @@ api.add_resource(TaskAggregationApi, '/tasks/<task_id>/aggregate',
 from api.answer_api import *
 api.add_resource(AnswerApi, '/answers/<answer_id>') #UNSECURED
 api.add_resource(AnswerListApi, '/answers') #DOES NOT REQUIRE SECURITY
+api.add_resource(AnswerListApi2, '/answers2') #DOES NOT REQUIRE SECURITY
 
 from api.task_api import *
 api.add_resource(TaskApi, '/task_data') #UNSECURED
